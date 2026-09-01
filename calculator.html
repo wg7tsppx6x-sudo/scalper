@@ -40,35 +40,16 @@
 
     <section class="section">
       <div class="calculator">
-        <label for="quantity">Number of cards</label>
-        <input
-          type="number"
-          id="quantity"
-          name="quantity"
-          inputmode="numeric"
-          min="1"
-          step="1"
-          placeholder="e.g. 500"
-          autocomplete="off"
-        />
+        <p class="calc-intro">Enter how many cards you have in each condition/rarity bucket below.</p>
+
+        <div class="calc-categories" id="calc-categories"></div>
         <div class="field-error" id="quantity-error" role="alert"></div>
 
         <div class="calc-result">
-          <p class="calc-total" id="calc-total">$0.00 <span class="calc-total-unit">estimated total</span></p>
-          <p class="calc-breakdown" id="calc-breakdown">Enter a quantity above to see your quote.</p>
-        </div>
-
-        <div class="calc-tiers">
-          <table>
-            <caption>Current pricing tiers</caption>
-            <thead>
-              <tr>
-                <th scope="col">Card count</th>
-                <th scope="col">Price per card</th>
-              </tr>
-            </thead>
-            <tbody id="calc-tiers-body"></tbody>
-          </table>
+          <p class="calc-total" id="calc-total">£0.00 <span class="calc-total-unit">estimated total</span></p>
+          <div class="calc-breakdown" id="calc-breakdown">
+            <p>Enter your card counts above to see your quote.</p>
+          </div>
         </div>
 
         <div class="calc-actions">

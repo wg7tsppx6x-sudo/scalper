@@ -1,37 +1,34 @@
 /**
  * ============================================================
- * EDIT ME — Bulk Pokemon card pricing tiers.
+ * EDIT ME — Bulk card pricing rates.
  * ============================================================
  * This is the ONLY file you should need to touch to change
- * pricing. Each tier is flat-rate: every card in the submitted
- * quantity is priced at that tier's `pricePerCard`, based on
- * which tier the total quantity falls into.
+ * pricing. Each rate card has a flat price per card in that
+ * condition/rarity bucket — the calculator sums (quantity ×
+ * pricePerCard) across every bucket the customer fills in.
  *
- * - `min` / `max` are inclusive card counts.
- * - Use `Infinity` for the top tier's `max` so there's no
- *   upper ceiling.
- * - Tiers must be listed in ascending order with no gaps.
- * - `label` is shown in the on-page tier table.
+ * `pricePerCard` is in GBP (pounds), e.g. 1.3p = 0.013.
+ * `id` must be unique within a rate card and is used as the
+ * form field key — don't reuse an id across buckets.
+ * `label` is shown next to the quantity field on the page.
  *
- * `category` identifies which product line these tiers apply
- * to. Pokemon is the only category today; when other TCGs are
- * added, add another entry to `pricingTiersByCategory` (e.g.
- * "mtg", "yugioh") with its own tier list, and the calculator
- * can offer a category selector without any other code
+ * `pricingRatesByGame` is keyed by TCG. Pokemon is the only
+ * game today; when other TCGs are added, add another entry
+ * (e.g. "mtg", "yugioh") with its own rate card, and the
+ * calculator can offer a game selector without any other code
  * changes.
  */
 
-const pricingTiersByCategory = {
+const pricingRatesByGame = {
   pokemon: [
-    { min: 1, max: 99, pricePerCard: 0.05, label: "1 - 99 cards" },
-    { min: 100, max: 499, pricePerCard: 0.04, label: "100 - 499 cards" },
-    { min: 500, max: 999, pricePerCard: 0.03, label: "500 - 999 cards" },
-    { min: 1000, max: 4999, pricePerCard: 0.02, label: "1,000 - 4,999 cards" },
-    { min: 5000, max: Infinity, pricePerCard: 0.015, label: "5,000+ cards" },
+    { id: "common", label: "Common / Uncommon (Near Mint)", pricePerCard: 0.013 },
+    { id: "holo", label: "Holo / Reverse Holo", pricePerCard: 0.03 },
+    { id: "exv", label: "EX / V", pricePerCard: 0.40 },
+    { id: "fullart", label: "Full Art / AR / etc.", pricePerCard: 0.80 },
   ],
 };
 
-// Default category used by the calculator until multi-category
-// selection is added to the UI.
-const DEFAULT_PRICING_CATEGORY = "pokemon";
-const pricingTiers = pricingTiersByCategory[DEFAULT_PRICING_CATEGORY];
+// Default game used by the calculator until multi-game selection
+// is added to the UI.
+const DEFAULT_PRICING_GAME = "pokemon";
+const pricingCategories = pricingRatesByGame[DEFAULT_PRICING_GAME];
