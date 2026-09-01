@@ -7,12 +7,13 @@
    ========================================================= */
 
 :root {
-  /* --- Brand colors (placeholder — replace with real brand values) --- */
-  --primary-color: #2b1f5c;       /* deep navy-purple */
-  --primary-color-dark: #1c1440;
-  --secondary-color: #f0b02d;     /* gold accent */
-  --secondary-color-dark: #cf9520;
-  --accent-color: #e8542e;        /* warm accent for alerts/errors */
+  /* --- Brand colors, matched to the TRP logo --- */
+  --primary-color: #14142b;       /* deep navy background */
+  --primary-color-dark: #0b0a1c;
+  --secondary-color: #f2a900;     /* gold ("P") */
+  --secondary-color-dark: #cf8f00;
+  --accent-color: #e5473c;        /* red ("T") — also used for alerts/errors */
+  --stripe-blue: #3d63d6;         /* blue end of the logo's gradient stripe */
 
   /* --- Neutrals --- */
   --color-bg: #faf9fc;
@@ -162,6 +163,8 @@ button {
   top: 0;
   z-index: 100;
   box-shadow: var(--shadow-sm);
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, var(--accent-color), var(--stripe-blue)) 1;
 }
 
 .nav {
