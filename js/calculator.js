@@ -57,14 +57,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let mode = "card"; // "card" | "weight"
   let lastResult = null; // holds the most recent valid calculation, for the quote button
 
-  // Render one row per pricing category: label, rate, quantity input.
+  // Render one row per pricing category: label + quantity input.
+  // Rates aren't shown — pricing is only ever revealed via the
+  // emailed quote, never on screen.
   pricingCategories.forEach((category) => {
     const row = document.createElement("div");
     row.className = "calc-category-row";
     row.innerHTML = `
       <div class="calc-category-info">
         <label for="qty-${category.id}">${category.label}</label>
-        <span class="calc-category-rate">${formatRate(category.pricePerCard)} / card</span>
       </div>
       <input
         type="number"

@@ -621,11 +621,6 @@ button {
   color: var(--color-text);
 }
 
-.calc-category-rate {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-}
-
 .calc-category-row input[type="number"] {
   width: 110px;
   font-size: 1.25rem;
