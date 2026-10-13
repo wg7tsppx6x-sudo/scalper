@@ -48,6 +48,22 @@ body {
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   font-family: var(--font-body);
   color: var(--color-text);
@@ -103,6 +119,8 @@ button {
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-block;
+  position: relative;
+  overflow: hidden;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 1rem;
@@ -114,9 +132,26 @@ button {
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.btn:hover::after {
+  transform: translateX(100%);
+}
+
 .btn:hover {
   text-decoration: none;
   transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn-primary {
@@ -126,7 +161,7 @@ button {
 
 .btn-primary:hover {
   background: var(--secondary-color-dark);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 24px rgba(242, 169, 0, 0.35);
 }
 
 .btn-secondary {
@@ -216,18 +251,35 @@ button {
 }
 
 .nav-links a {
+  position: relative;
   color: #fff;
   font-weight: 600;
   opacity: 0.85;
   padding: 0.25rem 0;
-  border-bottom: 2px solid transparent;
+}
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  background: var(--secondary-color);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
 }
 
 .nav-links a:hover,
 .nav-links a.active {
   opacity: 1;
   text-decoration: none;
-  border-bottom-color: var(--secondary-color);
+}
+
+.nav-links a:hover::after,
+.nav-links a.active::after {
+  transform: scaleX(1);
 }
 
 @media (max-width: 720px) {
@@ -264,10 +316,54 @@ button {
 
 /* ---------- Hero ---------- */
 .hero {
-  background: linear-gradient(160deg, var(--primary-color), var(--primary-color-dark));
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    120deg,
+    var(--primary-color-dark),
+    var(--primary-color) 45%,
+    #241b4d 65%,
+    var(--primary-color-dark)
+  );
+  background-size: 300% 300%;
+  animation: gradientShift 14s ease infinite;
   color: #fff;
   text-align: center;
   padding: 5rem 1.5rem 4.5rem;
+}
+
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero::before {
+  width: 320px;
+  height: 320px;
+  background: var(--accent-color);
+  top: -80px;
+  left: -60px;
+  animation: drift 10s ease-in-out infinite;
+}
+
+.hero::after {
+  width: 280px;
+  height: 280px;
+  background: var(--stripe-blue);
+  bottom: -100px;
+  right: -40px;
+  animation: drift 12s ease-in-out infinite reverse;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero img.hero-logo {
@@ -334,6 +430,13 @@ button {
   border-radius: var(--radius-lg);
   padding: 1.75rem;
   box-shadow: var(--shadow-sm);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--secondary-color);
 }
 
 .card h3 {
@@ -343,6 +446,12 @@ button {
 .card .card-icon {
   font-size: 2rem;
   margin-bottom: 0.75rem;
+  display: inline-block;
+  transition: transform 0.25s ease;
+}
+
+.card:hover .card-icon {
+  transform: scale(1.15) rotate(-4deg);
 }
 
 /* ---------- Page header (non-home pages) ---------- */
@@ -399,6 +508,17 @@ button {
   padding: 0.9rem 1.1rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.calc-category-row:hover {
+  border-color: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+.calc-category-row:focus-within {
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(242, 169, 0, 0.18);
 }
 
 .calc-category-info {
@@ -551,6 +671,7 @@ button {
 .form-group input:focus,
 .form-group textarea:focus {
   border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(242, 169, 0, 0.18);
 }
 
 .form-group textarea {
@@ -591,6 +712,12 @@ button {
   margin-bottom: 0.9rem;
   overflow: hidden;
   background: var(--color-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.accordion-item.open {
+  border-color: var(--secondary-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .accordion-question {
@@ -608,6 +735,11 @@ button {
   font-weight: 600;
   color: var(--primary-color);
   cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.accordion-question:hover {
+  background: rgba(242, 169, 0, 0.08);
 }
 
 .accordion-icon {
@@ -689,6 +821,103 @@ button {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.85rem;
   text-align: center;
+}
+
+/* ---------- Scroll reveal ----------
+   .reveal elements are fully visible by default — if JS fails to
+   load or run, nothing is ever hidden. Only once main.js confirms
+   it's running does it add .reveal-ready to <html>, which is what
+   actually arms the hidden-until-scrolled-into-view state.
+
+   The reveal-in effect uses `animation`, not `transition` — some
+   .reveal elements (cards, accordion items) already define their
+   own `transition` for hover effects, and transition is a shorthand
+   that would otherwise be silently overwritten by whichever rule
+   wins the cascade. animation-delay (not transition-delay) is used
+   below for the same reason. */
+.reveal-ready .reveal {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.reveal-ready .reveal.is-visible {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.reveal-ready .card-grid .card:nth-child(1) { animation-delay: 0.05s; }
+.reveal-ready .card-grid .card:nth-child(2) { animation-delay: 0.15s; }
+.reveal-ready .card-grid .card:nth-child(3) { animation-delay: 0.25s; }
+.reveal-ready .card-grid .card:nth-child(4) { animation-delay: 0.35s; }
+
+.reveal-ready .calc-categories .calc-category-row:nth-child(1) { animation-delay: 0.05s; }
+.reveal-ready .calc-categories .calc-category-row:nth-child(2) { animation-delay: 0.12s; }
+.reveal-ready .calc-categories .calc-category-row:nth-child(3) { animation-delay: 0.19s; }
+.reveal-ready .calc-categories .calc-category-row:nth-child(4) { animation-delay: 0.26s; }
+
+.reveal-ready .accordion .accordion-item:nth-child(1) { animation-delay: 0.05s; }
+.reveal-ready .accordion .accordion-item:nth-child(2) { animation-delay: 0.1s; }
+.reveal-ready .accordion .accordion-item:nth-child(3) { animation-delay: 0.15s; }
+.reveal-ready .accordion .accordion-item:nth-child(4) { animation-delay: 0.2s; }
+.reveal-ready .accordion .accordion-item:nth-child(5) { animation-delay: 0.25s; }
+
+.reveal-ready .about-content .reveal:nth-of-type(1) { animation-delay: 0.05s; }
+.reveal-ready .about-content .reveal:nth-of-type(2) { animation-delay: 0.15s; }
+.reveal-ready .about-content .reveal:nth-of-type(3) { animation-delay: 0.25s; }
+
+/* ---------- Hero entrance + ambient motion ---------- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -15px) scale(1.08); }
+}
+
+.hero-logo,
+.hero h1,
+.hero p,
+.hero-actions {
+  opacity: 0;
+  animation: fadeInUp 0.7s ease forwards;
+}
+
+.hero-logo {
+  animation-delay: 0.05s;
+}
+
+.hero h1 {
+  animation-delay: 0.18s;
+}
+
+.hero p {
+  animation-delay: 0.3s;
+}
+
+.hero-actions {
+  animation-delay: 0.42s;
+}
+
+.hero-logo {
+  animation: fadeInUp 0.7s ease forwards, floatY 4.5s ease-in-out 0.8s infinite;
 }
 
 /* ---------- Utility ---------- */
