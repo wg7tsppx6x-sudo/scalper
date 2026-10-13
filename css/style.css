@@ -655,6 +655,16 @@ button {
   border-top: 1px dashed var(--color-border);
 }
 
+.calc-weight-pending {
+  text-align: center;
+}
+
+.calc-weight-pending p {
+  color: var(--color-text-muted);
+  max-width: 420px;
+  margin: 0 auto;
+}
+
 .calc-total {
   font-family: var(--font-heading);
   font-size: 2.75rem;

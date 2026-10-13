@@ -22,6 +22,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const modeWeightPanel = document.getElementById("mode-weight-panel");
   const weightInput = document.getElementById("weight-kg");
 
+  // By Weight deliberately never shows a price on screen — only
+  // the emailed quote reveals it — so it gets its own "pending"
+  // panel instead of the live total/breakdown used by By Card.
+  const resultEl = document.getElementById("calc-result");
+  const weightPendingEl = document.getElementById("calc-weight-pending");
+
   const emailInput = document.getElementById("quote-email");
   const emailErrorEl = document.getElementById("quote-email-error");
 
@@ -88,6 +94,8 @@ document.addEventListener("DOMContentLoaded", () => {
     modeWeightBtn.setAttribute("aria-selected", String(!isCard));
     modeCardPanel.hidden = !isCard;
     modeWeightPanel.hidden = isCard;
+    resultEl.hidden = !isCard;
+    weightPendingEl.hidden = isCard;
     errorEl.textContent = "";
     calculate();
   }
@@ -205,10 +213,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     errorEl.textContent = "";
 
+    // Deliberately not rendered anywhere on screen — By Weight
+    // quotes are only revealed by email, once sent.
     const total = weight * weightPricing.pricePerKg;
-
-    totalEl.innerHTML = `${money.format(total)} <span class="calc-total-unit">estimated total</span>`;
-    breakdownEl.innerHTML = `<p>${weight.toLocaleString()} kg × ${money.format(weightPricing.pricePerKg)}/kg = ${money.format(total)}</p>`;
 
     lastResult = { mode: "weight", weight, pricePerKg: weightPricing.pricePerKg, total };
     updateQuoteButtonState();
