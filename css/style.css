@@ -920,6 +920,53 @@ button {
   animation: fadeInUp 0.7s ease forwards, floatY 4.5s ease-in-out 0.8s infinite;
 }
 
+/* ---------- Hero CTA flight ----------
+   A small decorative card flies around the hero on page load, then
+   "lands" on the instant-quote button and lights it up. Built and
+   positioned entirely in JS (js/hero-cta-flight.js) since it needs
+   the button's real on-screen position; this just styles it. */
+.fly-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 30px;
+  height: 42px;
+  border-radius: 5px;
+  background: linear-gradient(145deg, var(--secondary-color), var(--accent-color));
+  box-shadow: 0 0 16px 2px rgba(242, 169, 0, 0.65), 0 0 4px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  z-index: 500;
+  will-change: transform, opacity;
+}
+
+.fly-card::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+@keyframes ctaLightUp {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(242, 169, 0, 0.35);
+    transform: translateY(-2px) scale(1);
+  }
+  15%, 45%, 75% {
+    box-shadow: 0 0 0 10px rgba(242, 169, 0, 0.25), 0 0 32px 6px rgba(242, 169, 0, 0.85);
+    transform: translateY(-2px) scale(1.06);
+  }
+  30%, 60%, 90% {
+    box-shadow: 0 8px 24px rgba(242, 169, 0, 0.35);
+    transform: translateY(-2px) scale(1);
+  }
+}
+
+.btn-primary.lit {
+  animation: ctaLightUp 1.4s ease-out 1;
+}
+
 /* ---------- Utility ---------- */
 .text-center {
   text-align: center;
