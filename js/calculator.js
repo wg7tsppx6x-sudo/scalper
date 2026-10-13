@@ -3,16 +3,14 @@
  * Two quote modes, switched via a toggle:
  *  - "card":   per condition/rarity bucket (pricingCategories)
  *  - "weight": flat rate per kg (weightPricing)
- * Both read their rates from pricing-config.js. Recalculates on
- * every keystroke/change — no page reload needed for the
- * calculation itself. "Get this quote" requires a valid email
- * before it's enabled, since the quote is delivered by email.
+ * Both read their rates from pricing-config.js. Neither mode shows
+ * a price on screen — the total is calculated live internally (for
+ * validation and the quote payload) but is only ever revealed by
+ * email, once "Get this quote" is submitted with a valid address.
  */
 document.addEventListener("DOMContentLoaded", () => {
   const categoriesEl = document.getElementById("calc-categories");
   const errorEl = document.getElementById("quantity-error");
-  const totalEl = document.getElementById("calc-total");
-  const breakdownEl = document.getElementById("calc-breakdown");
   const quoteBtn = document.getElementById("get-quote-btn");
   const toast = document.getElementById("toast");
 
@@ -22,11 +20,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const modeWeightPanel = document.getElementById("mode-weight-panel");
   const weightInput = document.getElementById("weight-kg");
 
-  // By Weight deliberately never shows a price on screen — only
-  // the emailed quote reveals it — so it gets its own "pending"
-  // panel instead of the live total/breakdown used by By Card.
-  const resultEl = document.getElementById("calc-result");
-  const weightPendingEl = document.getElementById("calc-weight-pending");
+  const pendingTextEl = document.getElementById("calc-pending-text");
+  const PENDING_TEXT = {
+    card: "Enter your card counts above, then your email below, to get your quote.",
+    weight: "Enter your collection weight above, then your email below, to get your quote.",
+  };
 
   const emailInput = document.getElementById("quote-email");
   const emailErrorEl = document.getElementById("quote-email-error");
@@ -94,8 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modeWeightBtn.setAttribute("aria-selected", String(!isCard));
     modeCardPanel.hidden = !isCard;
     modeWeightPanel.hidden = isCard;
-    resultEl.hidden = !isCard;
-    weightPendingEl.hidden = isCard;
+    pendingTextEl.textContent = PENDING_TEXT[mode];
     errorEl.textContent = "";
     calculate();
   }
@@ -107,10 +104,8 @@ document.addEventListener("DOMContentLoaded", () => {
     quoteBtn.disabled = !(lastResult && validateEmail(emailInput.value.trim()));
   }
 
-  function resetResult(message) {
+  function resetResult() {
     lastResult = null;
-    totalEl.innerHTML = `${money.format(0)} <span class="calc-total-unit">estimated total</span>`;
-    breakdownEl.innerHTML = `<p>${message || "Enter your details above to see your quote."}</p>`;
     updateQuoteButtonState();
   }
 
@@ -169,15 +164,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Deliberately not rendered anywhere on screen — quotes are
+    // only revealed by email, once sent.
     const total = lineItems.reduce((sum, item) => sum + item.subtotal, 0);
-
-    totalEl.innerHTML = `${money.format(total)} <span class="calc-total-unit">estimated total</span>`;
-    breakdownEl.innerHTML = lineItems
-      .map(
-        (item) =>
-          `<p>${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}</p>`
-      )
-      .join("");
 
     lastResult = { mode: "card", lineItems, total };
     updateQuoteButtonState();
