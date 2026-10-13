@@ -40,16 +40,56 @@
 
     <section class="section">
       <div class="calculator reveal">
-        <p class="calc-intro">Enter how many cards you have in each condition/rarity bucket below.</p>
+        <div class="calc-mode-toggle" role="tablist" aria-label="Quote method">
+          <button type="button" class="calc-mode-btn active" id="mode-card-btn" role="tab" aria-selected="true">
+            By Card
+          </button>
+          <button type="button" class="calc-mode-btn" id="mode-weight-btn" role="tab" aria-selected="false">
+            By Weight
+          </button>
+        </div>
 
-        <div class="calc-categories" id="calc-categories"></div>
+        <div class="calc-mode-panel" id="mode-card-panel">
+          <p class="calc-intro">Enter how many cards you have in each condition/rarity bucket below.</p>
+          <div class="calc-categories" id="calc-categories"></div>
+        </div>
+
+        <div class="calc-mode-panel" id="mode-weight-panel" hidden>
+          <p class="calc-intro">Weigh your whole bulk collection and enter the total below — no sorting needed.</p>
+          <div class="calc-weight-row">
+            <div class="calc-category-info">
+              <label for="weight-kg">Collection weight</label>
+              <span class="calc-category-rate">£5.50 / kg</span>
+            </div>
+            <div class="calc-weight-input-wrap">
+              <input
+                type="number"
+                id="weight-kg"
+                name="weight-kg"
+                inputmode="decimal"
+                min="0"
+                step="0.1"
+                placeholder="0.0"
+                autocomplete="off"
+              />
+              <span class="calc-weight-unit">kg</span>
+            </div>
+          </div>
+        </div>
+
         <div class="field-error" id="quantity-error" role="alert"></div>
 
         <div class="calc-result">
           <p class="calc-total" id="calc-total">£0.00 <span class="calc-total-unit">estimated total</span></p>
           <div class="calc-breakdown" id="calc-breakdown">
-            <p>Enter your card counts above to see your quote.</p>
+            <p>Enter your details above to see your quote.</p>
           </div>
+        </div>
+
+        <div class="form-group calc-email-group">
+          <label for="quote-email">Your email</label>
+          <input type="email" id="quote-email" name="quote-email" autocomplete="email" placeholder="you@example.com" />
+          <div class="form-error" id="quote-email-error"></div>
         </div>
 
         <div class="calc-actions">
@@ -58,9 +98,9 @@
         </div>
 
         <p class="calc-note">
-          "Get this quote" copies your estimate to the clipboard and carries
-          it over to our contact form so you can send it straight to us.
-          Final offers may vary slightly based on card condition and set.
+          We'll email your quote to the address above. Final offers may vary
+          slightly based on card condition, set, or (for weighed
+          collections) what's actually inside once we sort it.
         </p>
       </div>
     </section>

@@ -1,9 +1,12 @@
 /**
  * Bulk Card Calculator.
- * Reads `pricingCategories` from pricing-config.js and renders
- * one quantity field per category. Recalculates on every
- * keystroke/change — no page reload, no submit button needed
- * for the calculation itself.
+ * Two quote modes, switched via a toggle:
+ *  - "card":   per condition/rarity bucket (pricingCategories)
+ *  - "weight": flat rate per kg (weightPricing)
+ * Both read their rates from pricing-config.js. Recalculates on
+ * every keystroke/change — no page reload needed for the
+ * calculation itself. "Get this quote" requires a valid email
+ * before it's enabled, since the quote is delivered by email.
  */
 document.addEventListener("DOMContentLoaded", () => {
   const categoriesEl = document.getElementById("calc-categories");
@@ -13,10 +16,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const quoteBtn = document.getElementById("get-quote-btn");
   const toast = document.getElementById("toast");
 
-  // A sane per-category ceiling so someone typing
-  // "99999999999999" doesn't freeze the tab or produce a
-  // nonsensical dollar figure.
+  const modeCardBtn = document.getElementById("mode-card-btn");
+  const modeWeightBtn = document.getElementById("mode-weight-btn");
+  const modeCardPanel = document.getElementById("mode-card-panel");
+  const modeWeightPanel = document.getElementById("mode-weight-panel");
+  const weightInput = document.getElementById("weight-kg");
+
+  const emailInput = document.getElementById("quote-email");
+  const emailErrorEl = document.getElementById("quote-email-error");
+
+  // Sane ceilings so wildly large input doesn't freeze the tab or
+  // produce a nonsensical total.
   const MAX_QUANTITY = 500_000;
+  const MAX_WEIGHT_KG = 2_000;
 
   const money = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
@@ -34,6 +46,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${penceStr}p`;
   }
 
+  function validateEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+
+  let mode = "card"; // "card" | "weight"
   let lastResult = null; // holds the most recent valid calculation, for the quote button
 
   // Render one row per pricing category: label, rate, quantity input.
@@ -60,21 +77,41 @@ document.addEventListener("DOMContentLoaded", () => {
     categoriesEl.appendChild(row);
   });
 
-  const inputs = Array.from(categoriesEl.querySelectorAll("input[data-category-id]"));
+  const cardInputs = Array.from(categoriesEl.querySelectorAll("input[data-category-id]"));
 
-  function resetResult() {
-    lastResult = null;
-    totalEl.innerHTML = `${money.format(0)} <span class="calc-total-unit">estimated total</span>`;
-    breakdownEl.innerHTML = `<p>Enter your card counts above to see your quote.</p>`;
-    quoteBtn.disabled = true;
+  function setMode(newMode) {
+    mode = newMode;
+    const isCard = mode === "card";
+    modeCardBtn.classList.toggle("active", isCard);
+    modeCardBtn.setAttribute("aria-selected", String(isCard));
+    modeWeightBtn.classList.toggle("active", !isCard);
+    modeWeightBtn.setAttribute("aria-selected", String(!isCard));
+    modeCardPanel.hidden = !isCard;
+    modeWeightPanel.hidden = isCard;
+    errorEl.textContent = "";
+    calculate();
   }
 
-  function calculate() {
+  modeCardBtn.addEventListener("click", () => setMode("card"));
+  modeWeightBtn.addEventListener("click", () => setMode("weight"));
+
+  function updateQuoteButtonState() {
+    quoteBtn.disabled = !(lastResult && validateEmail(emailInput.value.trim()));
+  }
+
+  function resetResult(message) {
+    lastResult = null;
+    totalEl.innerHTML = `${money.format(0)} <span class="calc-total-unit">estimated total</span>`;
+    breakdownEl.innerHTML = `<p>${message || "Enter your details above to see your quote."}</p>`;
+    updateQuoteButtonState();
+  }
+
+  function calculateCardMode() {
     let hasError = false;
     let hasAnyQuantity = false;
     const lineItems = [];
 
-    for (const input of inputs) {
+    for (const input of cardInputs) {
       const category = pricingCategories.find((c) => c.id === input.dataset.categoryId);
       const rawValue = input.value.trim();
 
@@ -134,8 +171,55 @@ document.addEventListener("DOMContentLoaded", () => {
       )
       .join("");
 
-    quoteBtn.disabled = false;
-    lastResult = { lineItems, total };
+    lastResult = { mode: "card", lineItems, total };
+    updateQuoteButtonState();
+  }
+
+  function calculateWeightMode() {
+    const rawValue = weightInput.value.trim();
+
+    if (rawValue === "") {
+      resetResult();
+      return;
+    }
+
+    if (!/^\d+(\.\d+)?$/.test(rawValue)) {
+      errorEl.textContent = "Please enter a valid weight in kg.";
+      resetResult();
+      return;
+    }
+
+    const weight = Number(rawValue);
+
+    if (weight <= 0) {
+      errorEl.textContent = "Weight must be greater than 0kg.";
+      resetResult();
+      return;
+    }
+
+    if (weight > MAX_WEIGHT_KG) {
+      errorEl.textContent = `For collections over ${MAX_WEIGHT_KG.toLocaleString()}kg, please contact us directly.`;
+      resetResult();
+      return;
+    }
+
+    errorEl.textContent = "";
+
+    const total = weight * weightPricing.pricePerKg;
+
+    totalEl.innerHTML = `${money.format(total)} <span class="calc-total-unit">estimated total</span>`;
+    breakdownEl.innerHTML = `<p>${weight.toLocaleString()} kg × ${money.format(weightPricing.pricePerKg)}/kg = ${money.format(total)}</p>`;
+
+    lastResult = { mode: "weight", weight, pricePerKg: weightPricing.pricePerKg, total };
+    updateQuoteButtonState();
+  }
+
+  function calculate() {
+    if (mode === "card") {
+      calculateCardMode();
+    } else {
+      calculateWeightMode();
+    }
   }
 
   function showToast(message) {
@@ -144,37 +228,68 @@ document.addEventListener("DOMContentLoaded", () => {
     window.clearTimeout(showToast._timer);
     showToast._timer = window.setTimeout(() => {
       toast.classList.remove("visible");
-    }, 2500);
+    }, 3000);
   }
 
-  inputs.forEach((input) => input.addEventListener("input", calculate));
+  cardInputs.forEach((input) => input.addEventListener("input", calculate));
+  weightInput.addEventListener("input", calculate);
 
-  quoteBtn.addEventListener("click", async () => {
+  emailInput.addEventListener("input", () => {
+    if (emailInput.value.trim() === "" || validateEmail(emailInput.value.trim())) {
+      emailErrorEl.textContent = "";
+    }
+    updateQuoteButtonState();
+  });
+
+  quoteBtn.addEventListener("click", () => {
     if (!lastResult) return;
 
-    const lines = lastResult.lineItems.map(
-      (item) =>
-        `${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}`
-    );
-    const quoteText = `The Rare Pull — Bulk Quote\n${lines.join("\n")}\nTotal: ${money.format(lastResult.total)}`;
+    const email = emailInput.value.trim();
+    if (!validateEmail(email)) {
+      emailErrorEl.textContent = "Please enter a valid email address.";
+      return;
+    }
+    emailErrorEl.textContent = "";
 
-    // Simplest option: copy the quote to the clipboard so the
-    // customer can paste it into the contact form or an email.
-    try {
-      await navigator.clipboard.writeText(quoteText);
-      showToast("Quote copied! Paste it into the contact form.");
-    } catch (err) {
-      // Clipboard API can fail (older browsers, insecure context).
-      showToast("Couldn't copy automatically — opening contact form instead.");
+    let quoteText;
+    if (lastResult.mode === "card") {
+      const lines = lastResult.lineItems.map(
+        (item) =>
+          `${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}`
+      );
+      quoteText = `The Rare Pull — Bulk Quote (by card)\n${lines.join("\n")}\nTotal: ${money.format(lastResult.total)}`;
+    } else {
+      quoteText =
+        `The Rare Pull — Bulk Quote (by weight)\n` +
+        `${lastResult.weight.toLocaleString()} kg × ${money.format(lastResult.pricePerKg)}/kg = ${money.format(lastResult.total)}`;
     }
 
-    // Also carry the quote over to the contact form via query
-    // string so "Get this quote" is one click from a filled-in
-    // message, clipboard or not.
-    const params = new URLSearchParams({ quote: quoteText });
+    const payload = { email, mode: lastResult.mode, quoteText, total: lastResult.total };
+
+    // TODO: connect to backend — send `payload` to an email/API
+    // service here so the quote is actually emailed to the
+    // customer, e.g.:
+    //   fetch("/api/quote", { method: "POST", body: JSON.stringify(payload) })
+    console.log("Quote request (not yet wired to a backend):", payload);
+
+    // Copy to clipboard too, as a quiet bonus/fallback. Fire-and-
+    // forget deliberately: this must never block or delay the
+    // actual "quote sent" confirmation below — the Clipboard API
+    // can hang or reject depending on permissions/context, and
+    // the email send (once wired up) is what actually matters.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(quoteText).catch(() => {});
+    }
+
+    const originalLabel = quoteBtn.textContent;
+    quoteBtn.disabled = true;
+    quoteBtn.textContent = "Sending…";
+
     window.setTimeout(() => {
-      window.location.href = `contact.html?${params.toString()}`;
-    }, 900);
+      showToast(`Quote sent to ${email} — check your inbox shortly!`);
+      quoteBtn.textContent = originalLabel;
+      updateQuoteButtonState();
+    }, 700);
   });
 
   resetResult();

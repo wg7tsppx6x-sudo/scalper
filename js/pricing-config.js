@@ -32,3 +32,12 @@ const pricingRatesByGame = {
 // is added to the UI.
 const DEFAULT_PRICING_GAME = "pokemon";
 const pricingCategories = pricingRatesByGame[DEFAULT_PRICING_GAME];
+
+/**
+ * Weight-based pricing — the alternative "By Weight" quote mode.
+ * Flat rate per kilogram for a mixed bulk collection, no sorting
+ * by rarity/condition needed. `pricePerKg` is in GBP.
+ */
+const weightPricing = {
+  pricePerKg: 5.5,
+};
