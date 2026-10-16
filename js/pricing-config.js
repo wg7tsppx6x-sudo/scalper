@@ -21,10 +21,12 @@
 
 const pricingRatesByGame = {
   pokemon: [
-    { id: "common", label: "Common / Uncommon (Near Mint)", pricePerCard: 0.013 },
+    { id: "common", label: "Commons / Uncommons", pricePerCard: 0.014 },
     { id: "holo", label: "Holo / Reverse Holo", pricePerCard: 0.03 },
-    { id: "exv", label: "EX / V", pricePerCard: 0.40 },
-    { id: "fullart", label: "Full Art / AR / etc.", pricePerCard: 0.80 },
+    { id: "vexgx", label: "V / EX / GX", pricePerCard: 0.35 },
+    { id: "vmaxvstar", label: "VMAX / VSTAR", pricePerCard: 0.50 },
+    { id: "illustration", label: "Illustration Rare / Trainer Gallery", pricePerCard: 0.80 },
+    { id: "goldrainbow", label: "Gold / Rainbow / Secret Rare", pricePerCard: 0.90 },
   ],
 };
 

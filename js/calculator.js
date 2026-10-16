@@ -3,14 +3,17 @@
  * Two quote modes, switched via a toggle:
  *  - "card":   per condition/rarity bucket (pricingCategories)
  *  - "weight": flat rate per kg (weightPricing)
- * Both read their rates from pricing-config.js. Neither mode shows
- * a price on screen — the total is calculated live internally (for
- * validation and the quote payload) but is only ever revealed by
- * email, once "Get this quote" is submitted with a valid address.
+ * Both read their rates from pricing-config.js and show the total
+ * live as you type, right here on the page. Email is optional — if
+ * you add one, "Get this quote" also emails you a copy (via
+ * /api/quote) alongside copying it to your clipboard; without one
+ * it just copies to clipboard.
  */
 document.addEventListener("DOMContentLoaded", () => {
   const categoriesEl = document.getElementById("calc-categories");
   const errorEl = document.getElementById("quantity-error");
+  const totalEl = document.getElementById("calc-total");
+  const breakdownEl = document.getElementById("calc-breakdown");
   const quoteBtn = document.getElementById("get-quote-btn");
   const toast = document.getElementById("toast");
 
@@ -19,12 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const modeCardPanel = document.getElementById("mode-card-panel");
   const modeWeightPanel = document.getElementById("mode-weight-panel");
   const weightInput = document.getElementById("weight-kg");
-
-  const pendingTextEl = document.getElementById("calc-pending-text");
-  const PENDING_TEXT = {
-    card: "Enter your card counts above, then your email below, to get your quote.",
-    weight: "Enter your collection weight above, then your email below, to get your quote.",
-  };
 
   const emailInput = document.getElementById("quote-email");
   const emailErrorEl = document.getElementById("quote-email-error");
@@ -37,10 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const money = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
   // GBP currency formatting always rounds to whole pence, which
-  // would flatten a rate like 1.3p down to "£0.01". Per-card
-  // rates are shown in pence with fractional precision instead;
-  // money.format() is still used for subtotals/totals, since
-  // real payouts are naturally rounded to the nearest penny.
+  // would flatten a rate like 1.4p down to "£0.01". Per-card rates
+  // are shown in pence with fractional precision instead;
+  // money.format() is still used for subtotals/totals, since real
+  // payouts are naturally rounded to the nearest penny.
   function formatRate(pricePerCard) {
     if (pricePerCard >= 1) {
       return money.format(pricePerCard);
@@ -57,15 +54,14 @@ document.addEventListener("DOMContentLoaded", () => {
   let mode = "card"; // "card" | "weight"
   let lastResult = null; // holds the most recent valid calculation, for the quote button
 
-  // Render one row per pricing category: label + quantity input.
-  // Rates aren't shown — pricing is only ever revealed via the
-  // emailed quote, never on screen.
+  // Render one row per pricing category: label, rate, quantity input.
   pricingCategories.forEach((category) => {
     const row = document.createElement("div");
     row.className = "calc-category-row";
     row.innerHTML = `
       <div class="calc-category-info">
         <label for="qty-${category.id}">${category.label}</label>
+        <span class="calc-category-rate">${formatRate(category.pricePerCard)} / card</span>
       </div>
       <input
         type="number"
@@ -93,7 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
     modeWeightBtn.setAttribute("aria-selected", String(!isCard));
     modeCardPanel.hidden = !isCard;
     modeWeightPanel.hidden = isCard;
-    pendingTextEl.textContent = PENDING_TEXT[mode];
     errorEl.textContent = "";
     calculate();
   }
@@ -101,12 +96,16 @@ document.addEventListener("DOMContentLoaded", () => {
   modeCardBtn.addEventListener("click", () => setMode("card"));
   modeWeightBtn.addEventListener("click", () => setMode("weight"));
 
+  // Email is optional, so the button only depends on having a
+  // valid calculated total — not on the email field.
   function updateQuoteButtonState() {
-    quoteBtn.disabled = !(lastResult && validateEmail(emailInput.value.trim()));
+    quoteBtn.disabled = !lastResult;
   }
 
   function resetResult() {
     lastResult = null;
+    totalEl.innerHTML = `${money.format(0)} <span class="calc-total-unit">estimated total</span>`;
+    breakdownEl.innerHTML = `<p>Enter your details above to see your quote.</p>`;
     updateQuoteButtonState();
   }
 
@@ -165,12 +164,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Deliberately not rendered anywhere on screen — quotes are
-    // only revealed by email, once sent. Kept client-side only for
-    // the clipboard-copy bonus; the backend recomputes the real
-    // total itself from `quantities` rather than trusting this.
     const total = lineItems.reduce((sum, item) => sum + item.subtotal, 0);
     const quantities = Object.fromEntries(lineItems.map((item) => [item.category.id, item.quantity]));
+
+    totalEl.innerHTML = `${money.format(total)} <span class="calc-total-unit">estimated total</span>`;
+    breakdownEl.innerHTML = lineItems
+      .map(
+        (item) =>
+          `<p>${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}</p>`
+      )
+      .join("");
 
     lastResult = { mode: "card", lineItems, total, quantities };
     updateQuoteButtonState();
@@ -206,11 +209,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     errorEl.textContent = "";
 
-    // Deliberately not rendered anywhere on screen — By Weight
-    // quotes are only revealed by email, once sent. Kept
-    // client-side only for the clipboard-copy bonus; the backend
-    // recomputes the real total itself from `weight`.
     const total = weight * weightPricing.pricePerKg;
+
+    totalEl.innerHTML = `${money.format(total)} <span class="calc-total-unit">estimated total</span>`;
+    breakdownEl.innerHTML = `<p>${weight.toLocaleString()} kg × ${money.format(weightPricing.pricePerKg)}/kg = ${money.format(total)}</p>`;
 
     lastResult = { mode: "weight", weight, pricePerKg: weightPricing.pricePerKg, total };
     updateQuoteButtonState();
@@ -233,6 +235,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 3000);
   }
 
+  function buildQuoteText() {
+    if (lastResult.mode === "card") {
+      const lines = lastResult.lineItems.map(
+        (item) =>
+          `${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}`
+      );
+      return `The Rare Pull — Bulk Quote (by card)\n${lines.join("\n")}\nTotal: ${money.format(lastResult.total)}`;
+    }
+    return (
+      `The Rare Pull — Bulk Quote (by weight)\n` +
+      `${lastResult.weight.toLocaleString()} kg × ${money.format(lastResult.pricePerKg)}/kg = ${money.format(lastResult.total)}`
+    );
+  }
+
   cardInputs.forEach((input) => input.addEventListener("input", calculate));
   weightInput.addEventListener("input", calculate);
 
@@ -240,36 +256,30 @@ document.addEventListener("DOMContentLoaded", () => {
     if (emailInput.value.trim() === "" || validateEmail(emailInput.value.trim())) {
       emailErrorEl.textContent = "";
     }
-    updateQuoteButtonState();
   });
 
   quoteBtn.addEventListener("click", async () => {
     if (!lastResult) return;
 
     const email = emailInput.value.trim();
-    if (!validateEmail(email)) {
-      emailErrorEl.textContent = "Please enter a valid email address.";
+    if (email && !validateEmail(email)) {
+      emailErrorEl.textContent = "That doesn't look like a valid email address.";
       return;
     }
     emailErrorEl.textContent = "";
 
-    // Clipboard copy as a quiet bonus. Fire-and-forget: the
-    // Clipboard API can hang or reject depending on permissions,
-    // and that must never block the actual email send below.
+    const quoteText = buildQuoteText();
+
+    // Clipboard copy always happens, email is a bonus on top.
+    // Fire-and-forget: the Clipboard API can hang or reject
+    // depending on permissions, and that must never block anything.
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      let quoteText;
-      if (lastResult.mode === "card") {
-        const lines = lastResult.lineItems.map(
-          (item) =>
-            `${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}`
-        );
-        quoteText = `The Rare Pull — Bulk Quote (by card)\n${lines.join("\n")}\nTotal: ${money.format(lastResult.total)}`;
-      } else {
-        quoteText =
-          `The Rare Pull — Bulk Quote (by weight)\n` +
-          `${lastResult.weight.toLocaleString()} kg × ${money.format(lastResult.pricePerKg)}/kg = ${money.format(lastResult.total)}`;
-      }
       navigator.clipboard.writeText(quoteText).catch(() => {});
+    }
+
+    if (!email) {
+      showToast("Quote copied to clipboard!");
+      return;
     }
 
     // The server recomputes the price itself from these raw
@@ -296,9 +306,9 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(body.error || "Something went wrong sending your quote.");
       }
 
-      showToast(`Quote sent to ${email} — check your inbox shortly!`);
+      showToast(`Quote copied, and emailed to ${email}!`);
     } catch (err) {
-      showToast("Couldn't send your quote right now. Please try again or use the contact form.");
+      showToast("Quote copied to clipboard. Couldn't email it though, please try again shortly.");
     } finally {
       quoteBtn.textContent = originalLabel;
       updateQuoteButtonState();

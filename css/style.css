@@ -526,6 +526,11 @@ button {
   margin-bottom: 1.5rem;
 }
 
+.calc-category-rate {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
 .calc-weight-row {
   display: flex;
   align-items: center;
@@ -648,16 +653,6 @@ button {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px dashed var(--color-border);
-}
-
-.calc-pending {
-  text-align: center;
-}
-
-.calc-pending p {
-  color: var(--color-text-muted);
-  max-width: 420px;
-  margin: 0 auto;
 }
 
 .calc-total {
