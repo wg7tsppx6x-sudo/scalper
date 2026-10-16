@@ -38,6 +38,26 @@
       <p>Enter how many Pokémon cards you're selling to see an instant estimate.</p>
     </div>
 
+    <section class="section calc-steps-section">
+      <div class="calc-steps">
+        <div class="calc-step reveal">
+          <div class="calc-step-number">1</div>
+          <h3>Enter your cards</h3>
+          <p>Count by category below, or just weigh the whole lot.</p>
+        </div>
+        <div class="calc-step reveal">
+          <div class="calc-step-number">2</div>
+          <h3>See your price</h3>
+          <p>Your total updates live as you type. No sign up needed.</p>
+        </div>
+        <div class="calc-step reveal">
+          <div class="calc-step-number">3</div>
+          <h3>Send &amp; get paid</h3>
+          <p>Pack them up and send them in. We pay out once they're checked.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="section">
       <div class="calculator reveal">
         <div class="calc-mode-toggle" role="tablist" aria-label="Quote method">
@@ -107,6 +127,16 @@
   </main>
 
   <div class="toast" id="toast"></div>
+
+  <div class="calc-sticky-bar" id="calc-sticky-bar" aria-hidden="true">
+    <div class="calc-sticky-inner">
+      <div class="calc-sticky-total">
+        <span class="calc-sticky-label">Estimated total</span>
+        <span class="calc-sticky-amount" id="calc-sticky-amount">£0.00</span>
+      </div>
+      <button class="btn btn-primary" id="calc-sticky-btn" type="button" disabled>Get this quote</button>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div class="footer-inner">

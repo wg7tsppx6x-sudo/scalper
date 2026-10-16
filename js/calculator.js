@@ -8,6 +8,12 @@
  * you add one, "Get this quote" also emails you a copy (via
  * /api/quote) alongside copying it to your clipboard; without one
  * it just copies to clipboard.
+ *
+ * UX extras: quantity +/- steppers, a live subtotal per row, a
+ * sticky summary bar that mirrors the main total/button so it's
+ * visible while scrolling the category list, and the entered
+ * quantities/weight are auto-saved to localStorage so a reload
+ * doesn't lose them (the email field is deliberately NOT persisted).
  */
 document.addEventListener("DOMContentLoaded", () => {
   const categoriesEl = document.getElementById("calc-categories");
@@ -26,10 +32,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailInput = document.getElementById("quote-email");
   const emailErrorEl = document.getElementById("quote-email-error");
 
+  const stickyBar = document.getElementById("calc-sticky-bar");
+  const stickyAmountEl = document.getElementById("calc-sticky-amount");
+  const stickyBtn = document.getElementById("calc-sticky-btn");
+
   // MAX_QUANTITY_PER_CATEGORY / MAX_WEIGHT_KG come from
   // pricing-config.js (loaded before this file) so the frontend
   // and the /api/quote backend validate against the same ceilings.
   const MAX_QUANTITY = MAX_QUANTITY_PER_CATEGORY;
+
+  const DRAFT_KEY = "rarepull-calc-draft-v1";
 
   const money = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
@@ -53,32 +65,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let mode = "card"; // "card" | "weight"
   let lastResult = null; // holds the most recent valid calculation, for the quote button
+  let lastTotalValue = null; // used to only pulse the total when it actually changes
 
-  // Render one row per pricing category: label, rate, quantity input.
+  // Render one row per pricing category: icon, label, rate,
+  // +/- stepper, quantity input, and a live per-row subtotal.
   pricingCategories.forEach((category) => {
     const row = document.createElement("div");
     row.className = "calc-category-row";
     row.innerHTML = `
-      <div class="calc-category-info">
-        <label for="qty-${category.id}">${category.label}</label>
-        <span class="calc-category-rate">${formatRate(category.pricePerCard)} / card</span>
+      <div class="calc-category-row-main">
+        <div class="calc-category-info">
+          <span class="calc-category-icon" aria-hidden="true">${category.icon || ""}</span>
+          <span>
+            <label for="qty-${category.id}">${category.label}</label>
+            <span class="calc-category-rate">${formatRate(category.pricePerCard)} / card</span>
+          </span>
+        </div>
+        <div class="calc-qty-control">
+          <button type="button" class="calc-qty-btn" data-step="-1" data-target="qty-${category.id}" aria-label="Decrease ${category.label} quantity">&minus;</button>
+          <input
+            type="number"
+            id="qty-${category.id}"
+            name="qty-${category.id}"
+            inputmode="numeric"
+            min="0"
+            step="1"
+            placeholder="0"
+            autocomplete="off"
+            data-category-id="${category.id}"
+          />
+          <button type="button" class="calc-qty-btn" data-step="1" data-target="qty-${category.id}" aria-label="Increase ${category.label} quantity">+</button>
+        </div>
       </div>
-      <input
-        type="number"
-        id="qty-${category.id}"
-        name="qty-${category.id}"
-        inputmode="numeric"
-        min="0"
-        step="1"
-        placeholder="0"
-        autocomplete="off"
-        data-category-id="${category.id}"
-      />
+      <div class="calc-row-subtotal" id="subtotal-${category.id}"></div>
     `;
     categoriesEl.appendChild(row);
   });
 
   const cardInputs = Array.from(categoriesEl.querySelectorAll("input[data-category-id]"));
+
+  // +/- steppers: delegated so one listener covers every row.
+  categoriesEl.addEventListener("click", (event) => {
+    const btn = event.target.closest(".calc-qty-btn");
+    if (!btn) return;
+    const input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+    const step = Number(btn.dataset.step);
+    const current = Math.max(0, Math.trunc(Number(input.value) || 0));
+    input.value = Math.max(0, current + step);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
 
   function setMode(newMode) {
     mode = newMode;
@@ -96,16 +132,46 @@ document.addEventListener("DOMContentLoaded", () => {
   modeCardBtn.addEventListener("click", () => setMode("card"));
   modeWeightBtn.addEventListener("click", () => setMode("weight"));
 
-  // Email is optional, so the button only depends on having a
+  function setQuoteButtonsDisabled(disabled) {
+    quoteBtn.disabled = disabled;
+    stickyBtn.disabled = disabled;
+  }
+
+  function setQuoteButtonsLabel(label) {
+    quoteBtn.textContent = label;
+    stickyBtn.textContent = label;
+  }
+
+  // Email is optional, so the buttons only depend on having a
   // valid calculated total — not on the email field.
   function updateQuoteButtonState() {
-    quoteBtn.disabled = !lastResult;
+    setQuoteButtonsDisabled(!lastResult);
+    stickyBar.classList.toggle("visible", !!lastResult);
+    stickyBar.setAttribute("aria-hidden", String(!lastResult));
+    document.body.classList.toggle("has-sticky-bar", !!lastResult);
+  }
+
+  function pulseTotal(value) {
+    if (value === lastTotalValue) return;
+    lastTotalValue = value;
+    totalEl.classList.remove("pulse");
+    // Force reflow so the animation restarts even if it's still running.
+    void totalEl.offsetWidth;
+    totalEl.classList.add("pulse");
+  }
+
+  function clearRowSubtotals() {
+    cardInputs.forEach((input) => {
+      const el = document.getElementById(`subtotal-${input.dataset.categoryId}`);
+      if (el) el.textContent = "";
+    });
   }
 
   function resetResult() {
     lastResult = null;
     totalEl.innerHTML = `${money.format(0)} <span class="calc-total-unit">estimated total</span>`;
     breakdownEl.innerHTML = `<p>Enter your details above to see your quote.</p>`;
+    stickyAmountEl.textContent = money.format(0);
     updateQuoteButtonState();
   }
 
@@ -117,8 +183,10 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const input of cardInputs) {
       const category = pricingCategories.find((c) => c.id === input.dataset.categoryId);
       const rawValue = input.value.trim();
+      const subtotalEl = document.getElementById(`subtotal-${category.id}`);
 
       if (rawValue === "") {
+        if (subtotalEl) subtotalEl.textContent = "";
         continue;
       }
 
@@ -142,13 +210,12 @@ document.addEventListener("DOMContentLoaded", () => {
         continue;
       }
 
+      const subtotal = quantity * category.pricePerCard;
+      if (subtotalEl) subtotalEl.textContent = quantity > 0 ? `= ${money.format(subtotal)}` : "";
+
       if (quantity > 0) {
         hasAnyQuantity = true;
-        lineItems.push({
-          category,
-          quantity,
-          subtotal: quantity * category.pricePerCard,
-        });
+        lineItems.push({ category, quantity, subtotal });
       }
     }
 
@@ -174,6 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
           `<p>${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}</p>`
       )
       .join("");
+    stickyAmountEl.textContent = money.format(total);
+    pulseTotal(total);
 
     lastResult = { mode: "card", lineItems, total, quantities };
     updateQuoteButtonState();
@@ -213,9 +282,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
     totalEl.innerHTML = `${money.format(total)} <span class="calc-total-unit">estimated total</span>`;
     breakdownEl.innerHTML = `<p>${weight.toLocaleString()} kg × ${money.format(weightPricing.pricePerKg)}/kg = ${money.format(total)}</p>`;
+    stickyAmountEl.textContent = money.format(total);
+    pulseTotal(total);
 
     lastResult = { mode: "weight", weight, pricePerKg: weightPricing.pricePerKg, total };
     updateQuoteButtonState();
+  }
+
+  function saveDraft() {
+    try {
+      const quantities = {};
+      cardInputs.forEach((input) => {
+        if (input.value.trim() !== "") quantities[input.dataset.categoryId] = input.value.trim();
+      });
+      window.localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ mode, quantities, weightKg: weightInput.value.trim() })
+      );
+    } catch (err) {
+      // localStorage can throw (private browsing, storage disabled) — non-essential, ignore.
+    }
+  }
+
+  function loadDraft() {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+
+      if (draft.quantities && typeof draft.quantities === "object") {
+        cardInputs.forEach((input) => {
+          const value = draft.quantities[input.dataset.categoryId];
+          if (value !== undefined) input.value = value;
+        });
+      }
+      if (draft.weightKg) {
+        weightInput.value = draft.weightKg;
+      }
+      if (draft.mode === "weight" || draft.mode === "card") {
+        mode = draft.mode;
+      }
+    } catch (err) {
+      // Corrupt or unavailable draft — just start fresh.
+    }
   }
 
   function calculate() {
@@ -224,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       calculateWeightMode();
     }
+    saveDraft();
   }
 
   function showToast(message) {
@@ -258,7 +368,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  quoteBtn.addEventListener("click", async () => {
+  async function submitQuote() {
     if (!lastResult) return;
 
     const email = emailInput.value.trim();
@@ -290,9 +400,8 @@ document.addEventListener("DOMContentLoaded", () => {
         ? { mode: "card", email, quantities: lastResult.quantities }
         : { mode: "weight", email, weightKg: lastResult.weight };
 
-    const originalLabel = quoteBtn.textContent;
-    quoteBtn.disabled = true;
-    quoteBtn.textContent = "Sending…";
+    setQuoteButtonsDisabled(true);
+    setQuoteButtonsLabel("Sending…");
 
     try {
       const response = await fetch("/api/quote", {
@@ -310,10 +419,14 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       showToast("Quote copied to clipboard. Couldn't email it though, please try again shortly.");
     } finally {
-      quoteBtn.textContent = originalLabel;
+      setQuoteButtonsLabel("Get this quote");
       updateQuoteButtonState();
     }
-  });
+  }
 
-  resetResult();
+  quoteBtn.addEventListener("click", submitQuote);
+  stickyBtn.addEventListener("click", submitQuote);
+
+  loadDraft();
+  setMode(mode);
 });

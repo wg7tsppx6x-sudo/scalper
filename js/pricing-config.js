@@ -11,6 +11,8 @@
  * `id` must be unique within a rate card and is used as the
  * form field key — don't reuse an id across buckets.
  * `label` is shown next to the quantity field on the page.
+ * `icon` is a single emoji shown next to the label — purely
+ * decorative, change or remove it freely.
  *
  * `pricingRatesByGame` is keyed by TCG. Pokemon is the only
  * game today; when other TCGs are added, add another entry
@@ -21,12 +23,12 @@
 
 const pricingRatesByGame = {
   pokemon: [
-    { id: "common", label: "Commons / Uncommons", pricePerCard: 0.014 },
-    { id: "holo", label: "Holo / Reverse Holo", pricePerCard: 0.03 },
-    { id: "vexgx", label: "V / EX / GX", pricePerCard: 0.35 },
-    { id: "vmaxvstar", label: "VMAX / VSTAR", pricePerCard: 0.50 },
-    { id: "illustration", label: "Illustration Rare / Trainer Gallery", pricePerCard: 0.80 },
-    { id: "goldrainbow", label: "Gold / Rainbow / Secret Rare", pricePerCard: 0.90 },
+    { id: "common", label: "Commons / Uncommons", pricePerCard: 0.014, icon: "⚪" },
+    { id: "holo", label: "Holo / Reverse Holo", pricePerCard: 0.03, icon: "✨" },
+    { id: "vexgx", label: "V / EX / GX", pricePerCard: 0.35, icon: "🔷" },
+    { id: "vmaxvstar", label: "VMAX / VSTAR", pricePerCard: 0.50, icon: "💠" },
+    { id: "illustration", label: "Illustration Rare / Trainer Gallery", pricePerCard: 0.80, icon: "🎨" },
+    { id: "goldrainbow", label: "Gold / Rainbow / Secret Rare", pricePerCard: 0.90, icon: "🌈" },
   ],
 };
 
