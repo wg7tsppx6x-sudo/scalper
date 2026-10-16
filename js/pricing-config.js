@@ -41,3 +41,26 @@ const pricingCategories = pricingRatesByGame[DEFAULT_PRICING_GAME];
 const weightPricing = {
   pricePerKg: 5.5,
 };
+
+// Sane ceilings shared by the frontend (calculator.js) and the
+// backend (api/quote.js) so a submitted quote is validated the
+// same way in both places.
+const MAX_QUANTITY_PER_CATEGORY = 500_000;
+const MAX_WEIGHT_KG = 2_000;
+
+// This file is loaded two ways: as a plain <script> in the browser
+// (where `module` doesn't exist, so this block is skipped and the
+// `const`s above are just shared page-level bindings), and via
+// require() from the Vercel serverless function in /api, which
+// needs these as real exports. Keeping pricing in one file this
+// way means there's still only one place to edit rates.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    pricingRatesByGame,
+    DEFAULT_PRICING_GAME,
+    pricingCategories,
+    weightPricing,
+    MAX_QUANTITY_PER_CATEGORY,
+    MAX_WEIGHT_KG,
+  };
+}

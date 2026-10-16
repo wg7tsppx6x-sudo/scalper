@@ -794,6 +794,20 @@ button {
   display: block;
 }
 
+.form-error-banner {
+  background: rgba(229, 71, 60, 0.1);
+  border: 1px solid rgba(229, 71, 60, 0.35);
+  color: var(--accent-color);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  display: none;
+}
+
+.form-error-banner.visible {
+  display: block;
+}
+
 /* ---------- FAQ Accordion ---------- */
 .accordion {
   max-width: 720px;

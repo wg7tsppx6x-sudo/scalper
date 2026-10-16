@@ -29,10 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailInput = document.getElementById("quote-email");
   const emailErrorEl = document.getElementById("quote-email-error");
 
-  // Sane ceilings so wildly large input doesn't freeze the tab or
-  // produce a nonsensical total.
-  const MAX_QUANTITY = 500_000;
-  const MAX_WEIGHT_KG = 2_000;
+  // MAX_QUANTITY_PER_CATEGORY / MAX_WEIGHT_KG come from
+  // pricing-config.js (loaded before this file) so the frontend
+  // and the /api/quote backend validate against the same ceilings.
+  const MAX_QUANTITY = MAX_QUANTITY_PER_CATEGORY;
 
   const money = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 
@@ -166,10 +166,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Deliberately not rendered anywhere on screen — quotes are
-    // only revealed by email, once sent.
+    // only revealed by email, once sent. Kept client-side only for
+    // the clipboard-copy bonus; the backend recomputes the real
+    // total itself from `quantities` rather than trusting this.
     const total = lineItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const quantities = Object.fromEntries(lineItems.map((item) => [item.category.id, item.quantity]));
 
-    lastResult = { mode: "card", lineItems, total };
+    lastResult = { mode: "card", lineItems, total, quantities };
     updateQuoteButtonState();
   }
 
@@ -204,7 +207,9 @@ document.addEventListener("DOMContentLoaded", () => {
     errorEl.textContent = "";
 
     // Deliberately not rendered anywhere on screen — By Weight
-    // quotes are only revealed by email, once sent.
+    // quotes are only revealed by email, once sent. Kept
+    // client-side only for the clipboard-copy bonus; the backend
+    // recomputes the real total itself from `weight`.
     const total = weight * weightPricing.pricePerKg;
 
     lastResult = { mode: "weight", weight, pricePerKg: weightPricing.pricePerKg, total };
@@ -238,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateQuoteButtonState();
   });
 
-  quoteBtn.addEventListener("click", () => {
+  quoteBtn.addEventListener("click", async () => {
     if (!lastResult) return;
 
     const email = emailInput.value.trim();
@@ -248,45 +253,56 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     emailErrorEl.textContent = "";
 
-    let quoteText;
-    if (lastResult.mode === "card") {
-      const lines = lastResult.lineItems.map(
-        (item) =>
-          `${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}`
-      );
-      quoteText = `The Rare Pull — Bulk Quote (by card)\n${lines.join("\n")}\nTotal: ${money.format(lastResult.total)}`;
-    } else {
-      quoteText =
-        `The Rare Pull — Bulk Quote (by weight)\n` +
-        `${lastResult.weight.toLocaleString()} kg × ${money.format(lastResult.pricePerKg)}/kg = ${money.format(lastResult.total)}`;
-    }
-
-    const payload = { email, mode: lastResult.mode, quoteText, total: lastResult.total };
-
-    // TODO: connect to backend — send `payload` to an email/API
-    // service here so the quote is actually emailed to the
-    // customer, e.g.:
-    //   fetch("/api/quote", { method: "POST", body: JSON.stringify(payload) })
-    console.log("Quote request (not yet wired to a backend):", payload);
-
-    // Copy to clipboard too, as a quiet bonus/fallback. Fire-and-
-    // forget deliberately: this must never block or delay the
-    // actual "quote sent" confirmation below — the Clipboard API
-    // can hang or reject depending on permissions/context, and
-    // the email send (once wired up) is what actually matters.
+    // Clipboard copy as a quiet bonus. Fire-and-forget: the
+    // Clipboard API can hang or reject depending on permissions,
+    // and that must never block the actual email send below.
     if (navigator.clipboard && navigator.clipboard.writeText) {
+      let quoteText;
+      if (lastResult.mode === "card") {
+        const lines = lastResult.lineItems.map(
+          (item) =>
+            `${item.quantity.toLocaleString()} × ${item.category.label} (${formatRate(item.category.pricePerCard)}) = ${money.format(item.subtotal)}`
+        );
+        quoteText = `The Rare Pull — Bulk Quote (by card)\n${lines.join("\n")}\nTotal: ${money.format(lastResult.total)}`;
+      } else {
+        quoteText =
+          `The Rare Pull — Bulk Quote (by weight)\n` +
+          `${lastResult.weight.toLocaleString()} kg × ${money.format(lastResult.pricePerKg)}/kg = ${money.format(lastResult.total)}`;
+      }
       navigator.clipboard.writeText(quoteText).catch(() => {});
     }
+
+    // The server recomputes the price itself from these raw
+    // inputs (against the same pricing-config.js) rather than
+    // trusting a client-supplied total.
+    const payload =
+      lastResult.mode === "card"
+        ? { mode: "card", email, quantities: lastResult.quantities }
+        : { mode: "weight", email, weightKg: lastResult.weight };
 
     const originalLabel = quoteBtn.textContent;
     quoteBtn.disabled = true;
     quoteBtn.textContent = "Sending…";
 
-    window.setTimeout(() => {
+    try {
+      const response = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || "Something went wrong sending your quote.");
+      }
+
       showToast(`Quote sent to ${email} — check your inbox shortly!`);
+    } catch (err) {
+      showToast("Couldn't send your quote right now. Please try again or use the contact form.");
+    } finally {
       quoteBtn.textContent = originalLabel;
       updateQuoteButtonState();
-    }, 700);
+    }
   });
 
   resetResult();
