@@ -1099,6 +1099,51 @@ body.has-sticky-bar {
   text-align: center;
 }
 
+.footer-legal-links {
+  display: inline-flex;
+  gap: 1rem;
+  margin-left: 0.75rem;
+}
+
+.footer-legal-links a {
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: underline;
+}
+
+.footer-legal-links a:hover {
+  color: #fff;
+}
+
+/* ---------- Legal pages (Privacy / Terms) ---------- */
+.legal-content {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.legal-content h2 {
+  text-align: left;
+  margin-top: 2rem;
+}
+
+.legal-content h2:first-child {
+  margin-top: 0;
+}
+
+.legal-content ul {
+  margin: 0 0 1em;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.legal-content li {
+  margin-bottom: 0.4rem;
+}
+
+.legal-updated {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
 /* ---------- Scroll reveal ----------
    .reveal elements are fully visible by default — if JS fails to
    load or run, nothing is ever hidden. Only once main.js confirms
