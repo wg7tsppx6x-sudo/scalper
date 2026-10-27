@@ -3,7 +3,7 @@
  * Vercel serverless function (Node.js runtime).
  *
  * Free daily "Spin to Win" — one spin per email per day, odds fixed
- * at 1 in 1000. The win/lose decision and the once-a-day limit are
+ * at 1 in 10000. The win/lose decision and the once-a-day limit are
  * both enforced here, never in the browser: client-side JS can
  * always be read or bypassed, so a user could otherwise just
  * re-spin until they won, or edit the odds themselves.
@@ -20,7 +20,7 @@
  *   win/notification emails.
  */
 
-const ODDS_DENOMINATOR = 1000; // 1-in-1000 chance to win
+const ODDS_DENOMINATOR = 10000; // 1-in-10000 chance to win
 const KEY_TTL_SECONDS = 60 * 60 * 48; // 48h — comfortably covers "today" regardless of timezone, keys are date-stamped anyway so this is just cleanup
 
 const RESEND_API_URL = "https://api.resend.com/emails";

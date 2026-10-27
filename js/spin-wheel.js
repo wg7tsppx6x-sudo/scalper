@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const STORAGE_KEY = "rarepull-spin-last-date";
 
-  // Purely decorative — the real odds (1 in 1000) are enforced by
+  // Purely decorative — the real odds (1 in 10000) are enforced by
   // the server. Exactly one segment is the win segment; the rest
   // are flavour text for "didn't win this time".
   const SEGMENTS = [
