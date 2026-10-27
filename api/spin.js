@@ -168,6 +168,7 @@ module.exports = async (req, res) => {
       await sendEmail({
         from: `The Rare Pull <${fromEmail}>`,
         to: email,
+        replyTo: businessEmail,
         subject: "🎉 You won a Fun Pack from The Rare Pull!",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
