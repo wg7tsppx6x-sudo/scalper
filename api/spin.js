@@ -8,12 +8,12 @@
  * always be read or bypassed, so a user could otherwise just
  * re-spin until they won, or edit the odds themselves.
  *
- * Requires environment variables set in the Vercel project:
- *   UPSTASH_REDIS_REST_URL   - from an Upstash Redis database
- *   UPSTASH_REDIS_REST_TOKEN - from the same database
- *   (Easiest setup: Vercel dashboard -> Storage -> Create Database
- *   -> Upstash for Redis -> Connect to Project. That auto-adds both
- *   of the above with exactly these names.)
+ * Requires environment variables set in the Vercel project, from an
+ * Upstash Redis database connected via Storage -> Create Database ->
+ * Upstash for Redis -> Connect to Project. Depending on how that
+ * integration names things, this reads either pair:
+ *   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN, or
+ *   KV_REST_API_URL / KV_REST_API_TOKEN
  *
  *   RESEND_API_KEY, QUOTE_FROM_EMAIL / a dedicated FROM address, and
  *   BUSINESS_EMAIL are reused from api/quote.js for sending the
@@ -50,10 +50,13 @@ function getClientIp(req) {
 }
 
 async function redis(...args) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Vercel's Upstash marketplace integration can land the same REST
+  // credentials under either naming convention depending on how the
+  // database was connected, so accept both.
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) {
-    throw new Error("Upstash is not configured (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN missing)");
+    throw new Error("Upstash is not configured (UPSTASH_REDIS_REST_URL/KV_REST_API_URL or the matching token env var is missing)");
   }
 
   const response = await fetch(url, {
