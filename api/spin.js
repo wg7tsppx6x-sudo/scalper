@@ -18,6 +18,12 @@
  *   RESEND_API_KEY, QUOTE_FROM_EMAIL / a dedicated FROM address, and
  *   BUSINESS_EMAIL are reused from api/quote.js for sending the
  *   win/notification emails.
+ *
+ * Entrants who tick the optional "email me about offers" checkbox
+ * have their email stored in the marketing:consented-emails Redis
+ * hash (email -> {consentedAt, source}), independent of whether they
+ * win or have already spun today. Export via GET /api/marketing-export
+ * (see that file).
  */
 
 const ODDS_DENOMINATOR = 10000; // 1-in-10000 chance to win
@@ -115,9 +121,22 @@ module.exports = async (req, res) => {
   body = body || {};
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const marketingConsent = body.marketingConsent === true;
 
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: "Please enter a valid email address." });
+  }
+
+  // Recorded independently of the spin/win outcome, and only when the
+  // (unticked-by-default, optional) consent checkbox was checked —
+  // entering the free draw never requires or implies marketing consent.
+  if (marketingConsent) {
+    redis(
+      "HSET",
+      "marketing:consented-emails",
+      email,
+      JSON.stringify({ consentedAt: new Date().toISOString(), source: "spin-wheel" })
+    ).catch((err) => console.error("Spin wheel: failed to record marketing consent:", err));
   }
 
   const date = todayKey();

@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailErrorEl = document.getElementById("spin-email-error");
   const spinBtn = document.getElementById("spin-btn");
   const resultEl = document.getElementById("spin-result");
+  const marketingConsentInput = document.getElementById("spin-marketing-consent");
 
   if (!wheelEl || !form) return; // not on this page
 
@@ -135,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/api/spin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, marketingConsent: marketingConsentInput.checked }),
         }),
         minWait,
       ]);
