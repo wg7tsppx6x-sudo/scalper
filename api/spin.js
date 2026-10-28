@@ -24,6 +24,11 @@
  * hash (email -> {consentedAt, source}), independent of whether they
  * win or have already spun today. Export via GET /api/marketing-export
  * (see that file).
+ *
+ * Every processed spin request (email, win/lose, already-spun, IP,
+ * timestamp) is also appended to the spin:log Redis list, capped to
+ * the most recent 20000 entries. Export via GET /api/spin-log (see
+ * that file).
  */
 
 const ODDS_DENOMINATOR = 10000; // 1-in-10000 chance to win
@@ -52,6 +57,16 @@ function normalizeEmailForLimiting(email) {
     local = local.replace(/\./g, "");
   }
   return `${local}@${domain}`;
+}
+
+// Best-effort, fire-and-forget — never blocks or fails the actual
+// spin response. Keeps the list capped so it can't grow forever.
+const SPIN_LOG_KEY = "spin:log";
+const SPIN_LOG_MAX_ENTRIES = 20000;
+function logSpinAttempt(entry) {
+  redis("RPUSH", SPIN_LOG_KEY, JSON.stringify({ ...entry, at: new Date().toISOString() }))
+    .then(() => redis("LTRIM", SPIN_LOG_KEY, -SPIN_LOG_MAX_ENTRIES, -1))
+    .catch((err) => console.error("Spin wheel: failed to write spin log:", err));
 }
 
 function todayKey() {
@@ -172,6 +187,7 @@ module.exports = async (req, res) => {
   }
 
   if (alreadySpun) {
+    logSpinAttempt({ email, ip: getClientIp(req), win: false, alreadySpun: true });
     return res.status(200).json({ win: false, alreadySpun: true });
   }
 
@@ -237,5 +253,6 @@ module.exports = async (req, res) => {
     }
   }
 
+  logSpinAttempt({ email, ip: getClientIp(req), win, alreadySpun: false });
   return res.status(200).json({ win });
 };
