@@ -1107,6 +1107,17 @@ body.has-sticky-bar {
   min-height: 1.1em;
 }
 
+.form-hint {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+  text-align: right;
+}
+
+.form-hint.form-hint-limit {
+  color: var(--accent-color);
+}
+
 .form-success {
   background: rgba(46, 160, 90, 0.12);
   border: 1px solid rgba(46, 160, 90, 0.4);

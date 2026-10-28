@@ -21,6 +21,8 @@
  */
 
 const RESEND_API_URL = "https://api.resend.com/emails";
+const NAME_MAX_LENGTH = 200;
+const MESSAGE_MAX_LENGTH = 2000; // keep in sync with the maxlength on #message in contact.html
 const CONTACT_LOG_KEY = "contact:log";
 const CONTACT_LOG_MAX_ENTRIES = 5000;
 
@@ -114,11 +116,17 @@ module.exports = async (req, res) => {
   if (!name) {
     return res.status(400).json({ error: "Please enter your name." });
   }
+  if (name.length > NAME_MAX_LENGTH) {
+    return res.status(400).json({ error: `Please keep your name under ${NAME_MAX_LENGTH} characters.` });
+  }
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: "Please enter a valid email address." });
   }
   if (!message) {
     return res.status(400).json({ error: "Please enter a message." });
+  }
+  if (message.length > MESSAGE_MAX_LENGTH) {
+    return res.status(400).json({ error: `Please keep your message under ${MESSAGE_MAX_LENGTH} characters.` });
   }
 
   const fromEmail = process.env.CONTACT_FROM_EMAIL || "contact@therarepull.co.uk";

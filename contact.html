@@ -69,7 +69,8 @@
 
         <div class="form-group">
           <label for="message">Message</label>
-          <textarea id="message" name="message" required></textarea>
+          <textarea id="message" name="message" maxlength="2000" required></textarea>
+          <div class="form-hint" id="message-count">0 / 2000</div>
           <div class="form-error" id="message-error"></div>
         </div>
 

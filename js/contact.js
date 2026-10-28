@@ -17,12 +17,24 @@ document.addEventListener("DOMContentLoaded", () => {
     message: { input: document.getElementById("message"), error: document.getElementById("message-error") },
   };
 
+  const MESSAGE_MAX_LENGTH = Number(fields.message.input.getAttribute("maxlength")) || 2000;
+  const messageCountEl = document.getElementById("message-count");
+
+  function updateMessageCount() {
+    if (!messageCountEl) return;
+    const length = fields.message.input.value.length;
+    messageCountEl.textContent = `${length} / ${MESSAGE_MAX_LENGTH}`;
+    messageCountEl.classList.toggle("form-hint-limit", length >= MESSAGE_MAX_LENGTH);
+  }
+  fields.message.input.addEventListener("input", updateMessageCount);
+
   // Prefill the message with a quote carried over from the calculator page.
   const params = new URLSearchParams(window.location.search);
   const quote = params.get("quote");
   if (quote) {
-    fields.message.input.value = `${quote}\n\n`;
+    fields.message.input.value = `${quote}\n\n`.slice(0, MESSAGE_MAX_LENGTH);
   }
+  updateMessageCount();
 
   function validateEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -50,6 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!fields.message.input.value.trim()) {
       fields.message.error.textContent = "Please enter a message.";
+      isValid = false;
+    } else if (fields.message.input.value.length > MESSAGE_MAX_LENGTH) {
+      fields.message.error.textContent = `Please keep your message under ${MESSAGE_MAX_LENGTH} characters.`;
       isValid = false;
     } else {
       fields.message.error.textContent = "";
