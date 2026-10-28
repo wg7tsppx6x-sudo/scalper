@@ -4,19 +4,38 @@
  *
  * Downloads a CSV of everyone who ticked the "email me about offers"
  * checkbox on the spin wheel (see api/spin.js), for importing into
- * whatever email marketing tool you use. Protected by a secret so it
- * can't be scraped by anyone who finds the URL.
+ * whatever email marketing tool you use. Protected by HTTP Basic Auth
+ * (the browser's native username/password prompt) rather than a
+ * secret in the URL, which would otherwise end up in browser history,
+ * server logs, and screenshots. See also GET /api/admin, which shows
+ * this same data as a page instead of a CSV download.
  *
  * Requires:
- *   ADMIN_EXPORT_SECRET - a long random string you choose. Set it in
- *   Vercel, then visit:
- *     https://therarepull.co.uk/api/marketing-export?secret=YOUR_SECRET
- *   (or send it as an x-admin-secret header instead, if you prefer
- *   not to have it in a URL/browser history).
+ *   ADMIN_USERNAME, ADMIN_PASSWORD - whatever you choose. Visit
+ *     https://therarepull.co.uk/api/marketing-export
+ *   and your browser will prompt for them.
  *
  *   Same Upstash env vars as api/spin.js (UPSTASH_REDIS_REST_URL /
  *   UPSTASH_REDIS_REST_TOKEN, or KV_REST_API_URL / KV_REST_API_TOKEN).
  */
+
+function checkBasicAuth(req, res) {
+  const username = process.env.ADMIN_USERNAME;
+  const password = process.env.ADMIN_PASSWORD;
+  if (!username || !password) {
+    res.status(500).json({ error: "ADMIN_USERNAME / ADMIN_PASSWORD are not configured" });
+    return false;
+  }
+
+  const expected = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+  if (req.headers.authorization !== expected) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="The Rare Pull Admin"');
+    res.status(401).end("Authentication required.");
+    return false;
+  }
+
+  return true;
+}
 
 async function redis(...args) {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
@@ -52,16 +71,7 @@ function csvEscape(value) {
 }
 
 module.exports = async (req, res) => {
-  const expectedSecret = process.env.ADMIN_EXPORT_SECRET;
-  if (!expectedSecret) {
-    return res.status(500).json({ error: "ADMIN_EXPORT_SECRET is not configured" });
-  }
-
-  const query = req.query || {};
-  const providedSecret = req.headers["x-admin-secret"] || query.secret || "";
-  if (providedSecret !== expectedSecret) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (!checkBasicAuth(req, res)) return;
 
   let pairs;
   try {
