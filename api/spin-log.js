@@ -70,11 +70,19 @@ module.exports = async (req, res) => {
     return res.status(502).json({ error: "Couldn't read the spin log right now." });
   }
 
-  const rows = [["timestamp", "email", "win", "already_spun", "ip"]];
+  const rows = [["timestamp", "email", "win", "already_spun", "blocked_by_email", "blocked_by_ip", "ip"]];
   for (const raw of rawEntries) {
     try {
       const entry = JSON.parse(raw);
-      rows.push([entry.at || "", entry.email || "", entry.win, entry.alreadySpun, entry.ip || ""]);
+      rows.push([
+        entry.at || "",
+        entry.email || "",
+        entry.win,
+        entry.alreadySpun,
+        entry.blockedByEmail ?? "",
+        entry.blockedByIp ?? "",
+        entry.ip || "",
+      ]);
     } catch (err) {
       // Skip a malformed entry rather than failing the whole export.
     }

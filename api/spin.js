@@ -177,17 +177,24 @@ module.exports = async (req, res) => {
   const emailKey = `spin:email:${normalizeEmailForLimiting(email)}:${date}`;
   const ipKey = `spin:ip:${getClientIp(req)}:${date}`;
 
-  let alreadySpun;
+  let emailSpun;
+  let ipSpun;
   try {
-    const [emailSpun, ipSpun] = await Promise.all([redis("GET", emailKey), redis("GET", ipKey)]);
-    alreadySpun = Boolean(emailSpun || ipSpun);
+    [emailSpun, ipSpun] = await Promise.all([redis("GET", emailKey), redis("GET", ipKey)]);
   } catch (err) {
     console.error("Spin wheel: failed to check spin history:", err);
     return res.status(502).json({ error: "Couldn't check your spin status right now. Please try again shortly." });
   }
 
-  if (alreadySpun) {
-    logSpinAttempt({ email, ip: getClientIp(req), win: false, alreadySpun: true });
+  if (emailSpun || ipSpun) {
+    logSpinAttempt({
+      email,
+      ip: getClientIp(req),
+      win: false,
+      alreadySpun: true,
+      blockedByEmail: Boolean(emailSpun),
+      blockedByIp: Boolean(ipSpun),
+    });
     return res.status(200).json({ win: false, alreadySpun: true });
   }
 
