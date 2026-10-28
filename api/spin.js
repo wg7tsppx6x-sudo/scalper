@@ -35,6 +35,25 @@ function isValidEmail(value) {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+// Collapses address variants that deliver to the same inbox, so the
+// daily limit can't be dodged with "me+1@gmail.com", "me+2@gmail.com",
+// "m.e@gmail.com", etc. Only used to build the rate-limit key — the
+// win/notification emails still go to the exact address entered.
+function normalizeEmailForLimiting(email) {
+  const atIndex = email.lastIndexOf("@");
+  if (atIndex === -1) return email;
+
+  const domain = email.slice(atIndex + 1);
+  // "+tag" subaddressing delivers to the base mailbox on effectively
+  // every major provider (Gmail, Outlook, Yahoo, iCloud, Fastmail...).
+  let local = email.slice(0, atIndex).split("+")[0];
+  // Gmail/Google Workspace also ignores dots in the local part.
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    local = local.replace(/\./g, "");
+  }
+  return `${local}@${domain}`;
+}
+
 function todayKey() {
   // UTC calendar date, e.g. "2026-10-21" — resets the limit at
   // midnight UTC. Using the date itself as part of the storage key
@@ -140,7 +159,7 @@ module.exports = async (req, res) => {
   }
 
   const date = todayKey();
-  const emailKey = `spin:email:${email}:${date}`;
+  const emailKey = `spin:email:${normalizeEmailForLimiting(email)}:${date}`;
   const ipKey = `spin:ip:${getClientIp(req)}:${date}`;
 
   let alreadySpun;
