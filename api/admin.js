@@ -209,23 +209,8 @@ module.exports = async (req, res) => {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/style.css" />
-<style>
-  body { background: var(--color-bg); padding: 2rem 1.25rem; }
-  .admin-wrap { max-width: 1000px; margin: 0 auto; }
-  .admin-wrap h1 { font-family: var(--font-heading); color: var(--primary-color); margin-bottom: 0.25rem; }
-  .admin-wrap h2 { font-family: var(--font-heading); color: var(--primary-color); margin: 2rem 0 0.5rem; }
-  .admin-note { color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
-  .admin-note a { color: var(--stripe-blue); }
-  table { width: 100%; border-collapse: collapse; background: var(--color-surface); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); }
-  th, td { text-align: left; padding: 0.6em 0.8em; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; }
-  th { background: var(--primary-color); color: #fff; font-weight: 600; }
-  tr:last-child td { border-bottom: none; }
-  tr:nth-child(even) td { background: var(--color-bg); }
-  .empty { color: var(--color-text-muted); font-style: italic; padding: 1rem; }
-  .table-scroll { overflow-x: auto; }
-</style>
 </head>
-<body>
+<body class="admin-page">
   <div class="admin-wrap">
     <h1>The Rare Pull — Admin</h1>
     <p class="admin-note">Not linked from anywhere public. Bookmark this page — your browser will remember the login for this session.</p>

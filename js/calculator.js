@@ -304,6 +304,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // localStorage is per-browser and never trusted as-is: a draft is
+  // just a convenience to refill the form, never used for pricing
+  // (every quote is recalculated from the live input values, and
+  // /api/quote independently re-validates and re-prices server-side),
+  // but a strict check here still stops a corrupted or tampered-with
+  // draft from populating the UI with anything other than a plain,
+  // in-range non-negative number.
+  function isValidDraftNumberString(value, max) {
+    if (typeof value !== "string" || value === "") return false;
+    if (!/^\d+(\.\d+)?$/.test(value)) return false;
+    const num = Number(value);
+    return Number.isFinite(num) && num >= 0 && num <= max;
+  }
+
   function loadDraft() {
     try {
       const raw = window.localStorage.getItem(DRAFT_KEY);
@@ -313,10 +327,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (draft.quantities && typeof draft.quantities === "object") {
         cardInputs.forEach((input) => {
           const value = draft.quantities[input.dataset.categoryId];
-          if (value !== undefined) input.value = value;
+          if (isValidDraftNumberString(value, MAX_QUANTITY)) input.value = value;
         });
       }
-      if (draft.weightKg) {
+      if (isValidDraftNumberString(draft.weightKg, MAX_WEIGHT_KG)) {
         weightInput.value = draft.weightKg;
       }
       if (draft.mode === "weight" || draft.mode === "card") {
