@@ -20,6 +20,7 @@
  */
 
 const SPIN_LOG_PAGE_SIZE = 500;
+const CONTACT_LOG_PAGE_SIZE = 200;
 
 function checkBasicAuth(req, res) {
   const username = process.env.ADMIN_USERNAME;
@@ -89,11 +90,15 @@ module.exports = async (req, res) => {
   let marketingPairs = [];
   let spinLogTotal = 0;
   let spinLogRaw = [];
+  let contactLogTotal = 0;
+  let contactLogRaw = [];
   try {
-    [marketingPairs, spinLogTotal, spinLogRaw] = await Promise.all([
+    [marketingPairs, spinLogTotal, spinLogRaw, contactLogTotal, contactLogRaw] = await Promise.all([
       redis("HGETALL", "marketing:consented-emails"),
       redis("LLEN", "spin:log"),
       redis("LRANGE", "spin:log", -SPIN_LOG_PAGE_SIZE, -1),
+      redis("LLEN", "contact:log"),
+      redis("LRANGE", "contact:log", -CONTACT_LOG_PAGE_SIZE, -1),
     ]);
   } catch (err) {
     console.error("Admin page: failed to read from Upstash:", err);
@@ -133,6 +138,22 @@ module.exports = async (req, res) => {
       ? `Showing the most recent ${spinRows.length} of ${spinLogTotal} total entries. <a href="/api/spin-log">Download full CSV</a>.`
       : `${spinRows.length} entries. <a href="/api/spin-log">Download as CSV</a>.`;
 
+  const contactRows = (contactLogRaw || [])
+    .map((raw) => {
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .reverse(); // newest first
+
+  const contactLogNote =
+    contactLogTotal > contactRows.length
+      ? `Showing the most recent ${contactRows.length} of ${contactLogTotal} total messages. <a href="/api/contact-log">Download full CSV</a>.`
+      : `${contactRows.length} messages. <a href="/api/contact-log">Download as CSV</a>.`;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -164,6 +185,31 @@ module.exports = async (req, res) => {
   <div class="admin-wrap">
     <h1>The Rare Pull — Admin</h1>
     <p class="admin-note">Not linked from anywhere public. Bookmark this page — your browser will remember the login for this session.</p>
+
+    <h2>Contact form messages</h2>
+    <p class="admin-note">${contactLogNote}</p>
+    <div class="table-scroll">
+      ${
+        contactRows.length
+          ? `<table>
+        <thead><tr><th>Time (UTC)</th><th>Name</th><th>Email</th><th>Message</th><th>Emailed to you?</th></tr></thead>
+        <tbody>
+          ${contactRows
+            .map(
+              (entry) => `<tr>
+            <td>${escapeHtml(entry.at || "")}</td>
+            <td>${escapeHtml(entry.name || "")}</td>
+            <td>${escapeHtml(entry.email || "")}</td>
+            <td style="white-space: pre-wrap;">${escapeHtml(entry.message || "")}</td>
+            <td>${entry.delivered ? "✅ Yes" : "⚠️ Failed"}</td>
+          </tr>`
+            )
+            .join("")}
+        </tbody>
+      </table>`
+          : `<p class="empty">No contact form messages logged yet.</p>`
+      }
+    </div>
 
     <h2>Spin requests</h2>
     <p class="admin-note">${spinLogNote}</p>

@@ -11,9 +11,51 @@
  *                        defaults below)
  *   BUSINESS_EMAIL     - where the message goes (optional, defaults
  *                        below)
+ *
+ * Every submission (name, email, message, and whether the email to
+ * the business actually sent) is also logged to the contact:log
+ * Redis list — same Upstash env vars as api/spin.js — so a message
+ * that fails to deliver is still visible on GET /api/admin instead
+ * of silently vanishing. This is best-effort: if Upstash isn't
+ * configured, the contact form still works, it just isn't logged.
  */
 
 const RESEND_API_URL = "https://api.resend.com/emails";
+const CONTACT_LOG_KEY = "contact:log";
+const CONTACT_LOG_MAX_ENTRIES = 5000;
+
+async function redis(...args) {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (!url || !token) {
+    throw new Error("Upstash is not configured (UPSTASH_REDIS_REST_URL/KV_REST_API_URL or the matching token env var is missing)");
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(args),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Upstash error (${response.status}): ${body}`);
+  }
+
+  const data = await response.json();
+  return data.result;
+}
+
+// Best-effort, fire-and-forget — never blocks or fails the actual
+// contact form response.
+function logContactSubmission(entry) {
+  redis("RPUSH", CONTACT_LOG_KEY, JSON.stringify({ ...entry, at: new Date().toISOString() }))
+    .then(() => redis("LTRIM", CONTACT_LOG_KEY, -CONTACT_LOG_MAX_ENTRIES, -1))
+    .catch((err) => console.error("Contact form: failed to write contact log:", err));
+}
 
 function isValidEmail(value) {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -102,8 +144,10 @@ module.exports = async (req, res) => {
     });
   } catch (err) {
     console.error("Failed to send contact form email:", err);
+    logContactSubmission({ name, email, message, delivered: false });
     return res.status(502).json({ error: "We couldn't send your message right now. Please try again shortly." });
   }
 
+  logContactSubmission({ name, email, message, delivered: true });
   return res.status(200).json({ ok: true });
 };
