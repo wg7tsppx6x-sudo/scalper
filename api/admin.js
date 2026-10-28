@@ -92,13 +92,19 @@ module.exports = async (req, res) => {
   let spinLogRaw = [];
   let contactLogTotal = 0;
   let contactLogRaw = [];
+  let fullSpinLogRaw = [];
+  let winsClaimsPairs = [];
   try {
-    [marketingPairs, spinLogTotal, spinLogRaw, contactLogTotal, contactLogRaw] = await Promise.all([
+    [marketingPairs, spinLogTotal, spinLogRaw, contactLogTotal, contactLogRaw, fullSpinLogRaw, winsClaimsPairs] = await Promise.all([
       redis("HGETALL", "marketing:consented-emails"),
       redis("LLEN", "spin:log"),
       redis("LRANGE", "spin:log", -SPIN_LOG_PAGE_SIZE, -1),
       redis("LLEN", "contact:log"),
       redis("LRANGE", "contact:log", -CONTACT_LOG_PAGE_SIZE, -1),
+      // Full log (not just the recent page above) so a win isn't
+      // missed just because a lot of non-winning spins came after it.
+      redis("LRANGE", "spin:log", 0, -1),
+      redis("HGETALL", "wins:claims"),
     ]);
   } catch (err) {
     console.error("Admin page: failed to read from Upstash:", err);
@@ -154,6 +160,44 @@ module.exports = async (req, res) => {
       ? `Showing the most recent ${contactRows.length} of ${contactLogTotal} total messages. <a href="/api/contact-log">Download full CSV</a>.`
       : `${contactRows.length} messages. <a href="/api/contact-log">Download as CSV</a>.`;
 
+  const claimsByToken = {};
+  for (let i = 0; i < (winsClaimsPairs || []).length; i += 2) {
+    const tok = winsClaimsPairs[i];
+    try {
+      claimsByToken[tok] = JSON.parse(winsClaimsPairs[i + 1]);
+    } catch (err) {
+      // Skip a malformed claim entry.
+    }
+  }
+
+  const winRows = (fullSpinLogRaw || [])
+    .map((raw) => {
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        return null;
+      }
+    })
+    .filter((entry) => entry && entry.win)
+    .reverse() // newest first
+    .map((entry) => {
+      const claim = entry.claimToken ? claimsByToken[entry.claimToken] : null;
+      return {
+        at: entry.at || "",
+        email: entry.email || "",
+        claimed: Boolean(claim),
+        name: claim ? claim.name : "",
+        address: claim ? claim.address : "",
+        postcode: claim ? claim.postcode : "",
+        submittedAt: claim ? claim.submittedAt : "",
+      };
+    });
+
+  const unclaimedCount = winRows.filter((row) => !row.claimed).length;
+  const winsNote = `${winRows.length} total win${winRows.length === 1 ? "" : "s"}${
+    unclaimedCount ? `, ${unclaimedCount} not yet claimed` : ""
+  }. <a href="/api/wins-export">Download as CSV</a>.`;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -208,6 +252,33 @@ module.exports = async (req, res) => {
         </tbody>
       </table>`
           : `<p class="empty">No contact form messages logged yet.</p>`
+      }
+    </div>
+
+    <h2>Wins</h2>
+    <p class="admin-note">${winsNote}</p>
+    <div class="table-scroll">
+      ${
+        winRows.length
+          ? `<table>
+        <thead><tr><th>Time (UTC)</th><th>Email</th><th>Claimed?</th><th>Name</th><th>Address</th><th>Postcode</th><th>Submitted (UTC)</th></tr></thead>
+        <tbody>
+          ${winRows
+            .map(
+              (row) => `<tr>
+            <td>${escapeHtml(row.at)}</td>
+            <td>${escapeHtml(row.email)}</td>
+            <td>${row.claimed ? "✅ Yes" : "⏳ Not yet"}</td>
+            <td>${escapeHtml(row.name)}</td>
+            <td style="white-space: pre-wrap;">${escapeHtml(row.address)}</td>
+            <td>${escapeHtml(row.postcode)}</td>
+            <td>${escapeHtml(row.submittedAt)}</td>
+          </tr>`
+            )
+            .join("")}
+        </tbody>
+      </table>`
+          : `<p class="empty">No wins yet.</p>`
       }
     </div>
 

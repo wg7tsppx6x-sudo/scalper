@@ -613,6 +613,69 @@ button {
   margin: 0;
 }
 
+/* ---------- Claim-prize modal (shown on a spin win) ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 43, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  z-index: 1000;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-width: 440px;
+  width: 100%;
+  max-height: calc(100vh - 2.5rem);
+  overflow-y: auto;
+  padding: 1.75rem;
+}
+
+.modal-card h3 {
+  font-family: var(--font-heading);
+  color: var(--primary-color);
+  margin-bottom: 0.4rem;
+}
+
+.modal-card .modal-intro {
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.modal-card .form-group {
+  text-align: left;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.btn-text-link {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.3rem;
+}
+
+.btn-text-link:hover {
+  color: var(--primary-color);
+}
+
 /* ---------- Page header (non-home pages) ---------- */
 .page-header {
   background: var(--primary-color);

@@ -29,6 +29,11 @@
  * timestamp) is also appended to the spin:log Redis list, capped to
  * the most recent 20000 entries. Export via GET /api/spin-log (see
  * that file).
+ *
+ * A win also issues a one-time claimToken (stored as claim:<token> ->
+ * email, 90-day TTL) so the winner can submit their shipping details
+ * without anyone else being able to forge a claim. See api/claim.js
+ * and the "Wins" section of GET /api/admin.
  */
 
 const ODDS_DENOMINATOR = 10000; // 1-in-10000 chance to win
@@ -221,9 +226,21 @@ module.exports = async (req, res) => {
     redis("INCR", "spin:stats:wins").catch(() => {});
   }
 
+  let claimToken = null;
+
   if (win) {
+    // Lets the winner submit their shipping details (from the on-page
+    // popup, or the link in their email if they close it) without
+    // anyone else being able to submit a fake claim — api/claim.js
+    // only accepts a token that was actually issued for a real win.
+    claimToken = crypto.randomBytes(16).toString("hex");
+    redis("SET", `claim:${claimToken}`, email, "EX", String(60 * 60 * 24 * 90)).catch((err) =>
+      console.error("Spin wheel: failed to store claim token:", err)
+    );
+
     const fromEmail = process.env.SPIN_FROM_EMAIL || process.env.QUOTE_FROM_EMAIL || "noreply@therarepull.co.uk";
     const businessEmail = process.env.BUSINESS_EMAIL || "williamleework@icloud.com";
+    const claimUrl = `https://therarepull.co.uk/claim.html?token=${claimToken}`;
 
     try {
       await sendEmail({
@@ -235,10 +252,10 @@ module.exports = async (req, res) => {
           <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
             <h2 style="color:#14142b;">You won!</h2>
             <p>Your free daily spin landed on a Fun Pack. Nice one!</p>
-            <p>Reply to this email with your name and postal address and we'll get it sent out to you.</p>
+            <p><a href="${claimUrl}" style="color:#e5473c; font-weight: bold;">Click here to let us know where to send it</a>, or just reply to this email with your name and postal address.</p>
           </div>
         `,
-        text: "You won! Your free daily spin landed on a Fun Pack. Reply to this email with your name and postal address and we'll get it sent out to you.",
+        text: `You won! Your free daily spin landed on a Fun Pack. Let us know where to send it: ${claimUrl} — or just reply to this email with your name and postal address.`,
       });
     } catch (err) {
       // The win is already recorded; don't fail the response over
@@ -260,6 +277,6 @@ module.exports = async (req, res) => {
     }
   }
 
-  logSpinAttempt({ email, ip: getClientIp(req), win, alreadySpun: false });
-  return res.status(200).json({ win });
+  logSpinAttempt({ email, ip: getClientIp(req), win, alreadySpun: false, claimToken });
+  return res.status(200).json({ win, claimToken });
 };

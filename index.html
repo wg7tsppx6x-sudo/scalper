@@ -131,6 +131,44 @@
     </section>
   </main>
 
+  <div class="modal-overlay" id="claim-modal-overlay" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="claim-modal-title">
+      <div id="claim-modal-form-wrap">
+        <h3 id="claim-modal-title">🎉 You won a Fun Pack!</h3>
+        <p class="modal-intro">Let us know where to send it.</p>
+        <form id="claim-modal-form" novalidate>
+          <div class="form-error-banner" id="claim-modal-error-banner" role="alert"></div>
+          <div class="form-group">
+            <label for="claim-name">Name</label>
+            <input type="text" id="claim-name" name="claim-name" autocomplete="name" maxlength="200" required />
+            <div class="form-error" id="claim-name-error"></div>
+          </div>
+          <div class="form-group">
+            <label for="claim-address">Address</label>
+            <textarea id="claim-address" name="claim-address" autocomplete="street-address" maxlength="500" required></textarea>
+            <div class="form-error" id="claim-address-error"></div>
+          </div>
+          <div class="form-group">
+            <label for="claim-postcode">Postcode</label>
+            <input type="text" id="claim-postcode" name="claim-postcode" autocomplete="postal-code" maxlength="20" required />
+            <div class="form-error" id="claim-postcode-error"></div>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-primary" id="claim-modal-submit">Submit</button>
+            <button type="button" class="btn-text-link" id="claim-modal-dismiss">I'll reply to the email instead</button>
+          </div>
+        </form>
+      </div>
+      <div id="claim-modal-success" hidden>
+        <h3>Thanks!</h3>
+        <p class="modal-intro">We've got your details and will get your Fun Pack sent out.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary" id="claim-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">

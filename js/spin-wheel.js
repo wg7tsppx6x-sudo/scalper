@@ -16,6 +16,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultEl = document.getElementById("spin-result");
   const marketingConsentInput = document.getElementById("spin-marketing-consent");
 
+  const claimOverlay = document.getElementById("claim-modal-overlay");
+  const claimFormWrap = document.getElementById("claim-modal-form-wrap");
+  const claimForm = document.getElementById("claim-modal-form");
+  const claimSuccess = document.getElementById("claim-modal-success");
+  const claimErrorBanner = document.getElementById("claim-modal-error-banner");
+  const claimNameInput = document.getElementById("claim-name");
+  const claimNameError = document.getElementById("claim-name-error");
+  const claimAddressInput = document.getElementById("claim-address");
+  const claimAddressError = document.getElementById("claim-address-error");
+  const claimPostcodeInput = document.getElementById("claim-postcode");
+  const claimPostcodeError = document.getElementById("claim-postcode-error");
+  const claimDismissBtn = document.getElementById("claim-modal-dismiss");
+  const claimCloseBtn = document.getElementById("claim-modal-close");
+
   if (!wheelEl || !form) return; // not on this page
 
   const STORAGE_KEY = "rarepull-spin-last-date";
@@ -109,6 +123,81 @@ document.addEventListener("DOMContentLoaded", () => {
     wheelEl.style.transform = `rotate(${rotation}deg)`;
   }
 
+  function closeClaimModal() {
+    if (claimOverlay) claimOverlay.hidden = true;
+  }
+
+  function openClaimModal(claimToken) {
+    if (!claimOverlay || !claimToken) return;
+    claimForm.reset();
+    claimErrorBanner.textContent = "";
+    claimErrorBanner.classList.remove("visible");
+    [claimNameError, claimAddressError, claimPostcodeError].forEach((el) => (el.textContent = ""));
+    claimFormWrap.hidden = false;
+    claimSuccess.hidden = true;
+    claimOverlay.hidden = false;
+
+    const submitBtn = document.getElementById("claim-modal-submit");
+
+    claimForm.onsubmit = async (event) => {
+      event.preventDefault();
+      claimErrorBanner.textContent = "";
+      claimErrorBanner.classList.remove("visible");
+
+      const name = claimNameInput.value.trim();
+      const address = claimAddressInput.value.trim();
+      const postcode = claimPostcodeInput.value.trim();
+
+      let isValid = true;
+      if (!name) {
+        claimNameError.textContent = "Please enter your name.";
+        isValid = false;
+      } else {
+        claimNameError.textContent = "";
+      }
+      if (!address) {
+        claimAddressError.textContent = "Please enter your address.";
+        isValid = false;
+      } else {
+        claimAddressError.textContent = "";
+      }
+      if (!postcode) {
+        claimPostcodeError.textContent = "Please enter your postcode.";
+        isValid = false;
+      } else {
+        claimPostcodeError.textContent = "";
+      }
+      if (!isValid) return;
+
+      const originalLabel = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting…";
+
+      try {
+        const response = await fetch("/api/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: claimToken, name, address, postcode }),
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.error || "Something went wrong.");
+        }
+        claimFormWrap.hidden = true;
+        claimSuccess.hidden = false;
+      } catch (err) {
+        claimErrorBanner.textContent = err.message || "Couldn't submit your details right now. Please try again, or reply to your winner email instead.";
+        claimErrorBanner.classList.add("visible");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+      }
+    };
+  }
+
+  if (claimDismissBtn) claimDismissBtn.addEventListener("click", closeClaimModal);
+  if (claimCloseBtn) claimCloseBtn.addEventListener("click", closeClaimModal);
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     emailErrorEl.textContent = "";
@@ -171,6 +260,11 @@ document.addEventListener("DOMContentLoaded", () => {
       markSpunToday();
       spinBtn.disabled = true;
       spinBtn.textContent = "Come back tomorrow";
+
+      if (data.win && data.claimToken) {
+        // Brief pause so the win message is visible before the popup appears.
+        window.setTimeout(() => openClaimModal(data.claimToken), 600);
+      }
     });
   });
 });

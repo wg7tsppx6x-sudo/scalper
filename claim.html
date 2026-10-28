@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Claim Your Prize | The Rare Pull</title>
+  <meta name="description" content="Submit your shipping details to claim your Spin to Win prize from The Rare Pull." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <nav class="nav">
+      <a class="nav-brand" href="index.html">
+        <img src="assets/logo.png" alt="The Rare Pull logo" />
+        <span>The Rare Pull</span>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="calculator.html">Calculator</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-header">
+      <h1>Claim Your Prize</h1>
+      <p>Let us know where to send your Fun Pack.</p>
+    </div>
+
+    <section class="section">
+      <div id="claim-page-missing-token" class="legal-content" hidden>
+        <p>This claim link is missing its code, so we can't match it to your win.</p>
+        <p>Please use the exact link from your winner email, or just reply to that email with your name and postal address instead.</p>
+      </div>
+
+      <form class="contact-form reveal" id="claim-page-form" novalidate>
+        <div class="form-error-banner" id="claim-page-error-banner" role="alert"></div>
+
+        <div class="form-group">
+          <label for="claim-page-name">Name</label>
+          <input type="text" id="claim-page-name" name="name" autocomplete="name" maxlength="200" required />
+          <div class="form-error" id="claim-page-name-error"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="claim-page-address">Address</label>
+          <textarea id="claim-page-address" name="address" autocomplete="street-address" maxlength="500" required></textarea>
+          <div class="form-error" id="claim-page-address-error"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="claim-page-postcode">Postcode</label>
+          <input type="text" id="claim-page-postcode" name="postcode" autocomplete="postal-code" maxlength="20" required />
+          <div class="form-error" id="claim-page-postcode-error"></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+
+      <div class="form-success" id="claim-page-success" role="status">
+        Thanks! We've got your details and will get your Fun Pack sent out.
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="assets/logo.png" alt="The Rare Pull logo" />
+        <span>The Rare Pull</span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="calculator.html">Calculator</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      &copy; <span id="year"></span> The Rare Pull. All rights reserved.
+      <span class="footer-legal-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="js/claim.js"></script>
+  <script src="js/main.js"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>
