@@ -613,6 +613,11 @@ button {
   margin: 0;
 }
 
+.spin-note a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 /* ---------- Claim-prize modal (shown on a spin win) ---------- */
 .modal-overlay {
   position: fixed;
@@ -1360,6 +1365,12 @@ body.has-sticky-bar {
 
 .legal-content h2:first-child {
   margin-top: 0;
+}
+
+.legal-content h3 {
+  text-align: left;
+  margin-top: 1.5rem;
+  font-size: 1.1rem;
 }
 
 .legal-content ul {
