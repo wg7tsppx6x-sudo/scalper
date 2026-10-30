@@ -647,11 +647,15 @@ button {
 }
 
 .spin-result {
-  min-height: 1.4em;
-  margin: 1.25rem 0 0.5rem;
+  min-height: 0;
+  margin: 0.5rem 0;
   font-family: var(--font-heading);
   font-weight: 700;
   color: var(--primary-color);
+}
+
+.spin-result:empty {
+  margin: 0.35rem 0;
 }
 
 .spin-note {
